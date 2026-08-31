@@ -37,9 +37,11 @@ body { margin: 0; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic Pr
 .doc-item-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
 .doc-item-delete { color: #fca5a5; font-size: 16px; width: 24px; text-align: center; border-radius: 4px; opacity: 0.5; }
 .doc-item-delete:hover { opacity: 1; background: rgba(255,0,0,0.2); }
-.sidebar-footer { padding: 15px; border-top: 1px solid #374151; }
+.sidebar-footer { padding: 15px; border-top: 1px solid #374151; display: flex; flex-direction: column; gap: 8px; }
 .btn-new-doc { width: 100%; padding: 10px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px; }
 .btn-new-doc:hover { background: #2563eb; }
+.btn-secondary { width: 100%; padding: 8px; background: transparent; color: #e5e7eb; border: 1px solid #4b5563; border-radius: 6px; cursor: pointer; font-size: 12px; text-align: center; margin-top: 8px; }
+.btn-secondary:hover { background: #374151; border-color: #9ca3af; }
 
 /* Main Content Area */
 .main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
@@ -52,7 +54,6 @@ body { margin: 0; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic Pr
 .btn { border: 1px solid #d1d5db; background: white; border-radius: 6px; padding: 6px 10px; cursor: pointer; font-size: 13px; color: #374151; display: inline-flex; align-items: center; justify-content: center; transition: all 0.1s; }
 .btn:hover { background: #f3f4f6; border-color: #9ca3af; }
 .btn:active { transform: scale(0.97); }
-.btn-icon { font-weight: bold; font-family: serif; font-size: 15px; width: 24px; }
 .btn.primary { background: #111827; color: white; border-color: #111827; }
 .btn.primary:hover { background: #374151; }
 .btn.danger { color: #ef4444; border-color: #fca5a5; }
@@ -65,23 +66,23 @@ body { margin: 0; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic Pr
 /* Editor Area */
 .editor-wrapper { flex: 1; overflow-y: auto; padding: 30px; display: flex; flex-direction: column; gap: 20px; }
 .editor-paper { background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.1); padding: 40px; min-height: calc(100vh - 150px); display: flex; flex-direction: column; }
-.editor { outline: none; font-size: 18px; line-height: 2.8; font-family: 'Times New Roman', Times, serif; color: #111; letter-spacing: 0.02em; flex: 1; }
+.editor { outline: none; -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; touch-action: auto; cursor: text; font-size: 18px; line-height: 2.8; font-family: 'Times New Roman', Times, serif; color: #111; letter-spacing: 0.02em; flex: 1; }
 .editor p { margin: 0 0 1.5em 0; }
+.mobile-selection-hint { display:none; }
+@media (pointer: coarse) { .mobile-selection-hint { display:block; margin-top:18px; font: 12px/1.5 -apple-system,BlinkMacSystemFont,sans-serif; color:#9ca3af; } }
 
 /* Input Source Modal */
 .token { position: relative; display: inline; margin: 0 1px; }
 
-/* 線の太さを1pxに変更 */
 .role-S { background: var(--c-s-bg); border-bottom: 1px solid var(--c-s-border); }
 .role-V { background: var(--c-v-bg); border-bottom: 1px solid var(--c-v-border); }
 .role-O { background: var(--c-o-bg); border-bottom: 1px solid var(--c-o-border); }
 .role-C { background: var(--c-c-bg); border-bottom: 1px solid var(--c-c-border); }
 .role-M { background: var(--c-m-bg); border-bottom: 1px solid var(--c-m-border); }
 
-/* 階層用のパディング（微調整） */
-.role-level-1 { padding-bottom: 5px; } /* 通常のS, V... */
-.role-level-2 { padding-bottom: 3px; } /* S', V'... */
-.role-level-3 { padding-bottom: 1px; } /* S", V"... */
+.role-level-1 { padding-bottom: 5px; }
+.role-level-2 { padding-bottom: 3px; }
+.role-level-3 { padding-bottom: 1px; }
 
 .role-label { font-size: 11px; font-weight: bold; position: absolute; top: -1.3em; left: 50%; transform: translateX(-50%); line-height: 1; font-family: Arial, sans-serif; pointer-events: none;}
 .role-S .role-label { color: var(--c-s-text); }
@@ -90,28 +91,13 @@ body { margin: 0; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic Pr
 .role-C .role-label { color: var(--c-c-text); }
 .role-M .role-label { color: var(--c-m-text); }
 
-/* 同じ元アルファベットは、階層記号・添字に関係なく同じ色 */
-.token[data-base-role="S"] { background: var(--c-s-bg); border-bottom-color: var(--c-s-border); }
-.token[data-base-role="V"] { background: var(--c-v-bg); border-bottom-color: var(--c-v-border); }
-.token[data-base-role="O"] { background: var(--c-o-bg); border-bottom-color: var(--c-o-border); }
-.token[data-base-role="C"] { background: var(--c-c-bg); border-bottom-color: var(--c-c-border); }
-.token[data-base-role="M"] { background: var(--c-m-bg); border-bottom-color: var(--c-m-border); }
-
-.token[data-base-role="S"] .role-label { color: var(--c-s-text); }
-.token[data-base-role="V"] .role-label { color: var(--c-v-text); }
-.token[data-base-role="O"] .role-label { color: var(--c-o-text); }
-.token[data-base-role="C"] .role-label { color: var(--c-c-text); }
-.token[data-base-role="M"] .role-label { color: var(--c-m-text); }
-
 .bracket { display: inline; }
 .b-handle { cursor: ew-resize; user-select: none; font-weight: bold; color: #4b5563; font-size: 1.1em; padding: 0 2px; display: inline-block; transition: transform 0.1s; font-family: Arial, sans-serif; }
 .b-handle:hover { color: #ea580c; transform: scale(1.3); }
 .b-content { display: inline; }
 
-/* ▼省略記号（主張を抑える） */
 .omission { color: rgba(225, 29, 72, 0.7); font-weight: normal; margin: 0 2px; font-size: 0.9em; cursor: pointer; display: inline-block; }
 
-/* ルビ（語注・直下ラベル）の設定 */
 ruby { ruby-position: under; ruby-align: center; }
 rt { font-family: 'Noto Sans JP', sans-serif; font-size: 10px; color: #e11d48; font-weight: normal; line-height: 1; user-select: none; padding-top: 8px; }
 .has-note { cursor: help; position: relative; }
@@ -128,51 +114,40 @@ rt { font-family: 'Noto Sans JP', sans-serif; font-size: 10px; color: #e11d48; f
 /* Modals */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
 .modal-overlay.active { opacity: 1; pointer-events: auto; }
-.modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 450px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); transform: translateY(20px); transition: transform 0.2s; }
+.modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); transform: translateY(20px); transition: transform 0.2s; }
 .modal-overlay.active .modal-content { transform: translateY(0); }
 .modal-title { margin: 0 0 15px; font-size: 18px; color: #111; }
-.modal-body { margin-bottom: 20px; font-size: 14px; color: #4b5563; }
-.modal-input { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 15px; outline: none; margin-top: 10px; }
+.modal-body { margin-bottom: 20px; font-size: 14px; color: #4b5563; line-height: 1.5; }
+.modal-input { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; outline: none; margin-top: 10px; font-family: monospace; }
 .modal-input:focus { border-color: #3b82f6; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;}
 
 .toast { position: fixed; bottom: 20px; right: 20px; background: #1f2937; color: white; padding: 10px 20px; border-radius: 8px; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); opacity: 0; transform: translateY(10px); transition: all 0.3s; z-index: 999; }
 .toast.show { opacity: 1; transform: translateY(0); }
 
+/* 印刷時の設定 */
 @media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+  
   .sidebar, .toolbar-container, .no-print, #floating-toolbar { display: none !important; }
   body, .main-area, .editor-wrapper, .editor-paper { height: auto; overflow: visible; background: white; margin: 0; padding: 0; display: block; box-shadow: none; border: none; }
   .editor-paper { padding: 15px; } 
   .notes-section { page-break-inside: avoid; margin-top: 20px; border-top: 1px solid #000; padding-top: 10px; }
+  .note-item { border-bottom: none; padding: 2px 0; }
+  
+  .token.role-S { background: var(--c-s-bg) !important; }
+  .token.role-V { background: var(--c-v-bg) !important; }
+  .token.role-O { background: var(--c-o-bg) !important; }
+  .token.role-C { background: var(--c-c-bg) !important; }
+  .token.role-M { background: var(--c-m-bg) !important; }
 
-  /* 印刷時も編集画面の蛍光ペン・下線・色をそのまま保持する */
-  html, body, .main-area, .editor-wrapper, .editor-paper, .editor {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-  .role-S, .role-V, .role-O, .role-C, .role-M {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-  /* 背景色そのものを明示して、印刷時にも蛍光ペンを保持 */
-  .role-S { background: var(--c-s-bg) !important; }
-  .role-V { background: var(--c-v-bg) !important; }
-  .role-O { background: var(--c-o-bg) !important; }
-  .role-C { background: var(--c-c-bg) !important; }
-  .role-M { background: var(--c-m-bg) !important; }
-  .token[data-base-role="S"] { background: var(--c-s-bg) !important; border-bottom-color: var(--c-s-border) !important; }
-  .token[data-base-role="V"] { background: var(--c-v-bg) !important; border-bottom-color: var(--c-v-border) !important; }
-  .token[data-base-role="O"] { background: var(--c-o-bg) !important; border-bottom-color: var(--c-o-border) !important; }
-  .token[data-base-role="C"] { background: var(--c-c-bg) !important; border-bottom-color: var(--c-c-border) !important; }
-  .token[data-base-role="M"] { background: var(--c-m-bg) !important; border-bottom-color: var(--c-m-border) !important; }
-
-
-  /* 解答用PDF：編集画面の表示をそのまま印刷 */
-  body:not(.print-student) .role-label { display: block !important; }
-
-  /* 生徒用PDF：蛍光ペンは残し、S/V/O/C/Mの文字だけ隠す */
   body.print-student .role-label { display: none !important; }
-  body.print-student .token { border-bottom: none !important; }
+  body.print-student .token { background: transparent !important; border-bottom: none !important; }
+  body.print-student .b-handle { display: inline-block !important; }
   body.print-student .note-mean { visibility: hidden; }
   body.print-student .omission { display: none !important; }
   body.print-student rt { visibility: hidden; }
@@ -188,38 +163,22 @@ rt { font-family: 'Noto Sans JP', sans-serif; font-size: 10px; color: #e11d48; f
 .role-s-btn { color: #fca5a5; } .role-v-btn { color: #93c5fd; } .role-o-btn { color: #86efac; } .role-c-btn { color: #d8b4fe; } .role-m-btn { color: #fdba74; }
 .ft-btn sub { font-size: 10px; bottom: -0.2em; }
 @media (hover: hover) { .ft-btn:hover { background: #374151; } }
-</style>
-
-<style>
-.print-rule-legend { display: none; }
-@media print {
-  .print-rule-legend {
-    display: block;
-    margin: 0 0 14px 0;
-    padding: 0 0 8px 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: 11pt;
-    line-height: 1.5;
-    color: #111;
-    border-bottom: 1px solid #ddd;
-  }
-}
+@media (pointer: coarse) { .floating-toolbar { display: none !important; } }
 </style>
 </head>
 <body>
-<div class="print-rule-legend">
-  <strong>構文解析のルール</strong>　■ 名詞句・節：［ ］　● 形容詞句・節：（ ）　◆ 副詞句・節：〈 〉
-</div>
-
 
 <div class="sidebar">
   <div class="sidebar-header">
     <h1>English Structure Editor</h1>
-    <p>Pro Version - 塾講師向け</p>
+    <p>Pro Version - テキスト同期版</p>
   </div>
   <div class="doc-list" id="doc-list"></div>
   <div class="sidebar-footer">
     <button class="btn-new-doc" onclick="createNewDoc()">新規作成</button>
+    <div style="height: 1px; background: #4b5563; margin: 12px 0 4px 0;"></div>
+    <button class="btn-secondary" onclick="exportDataAsText()">データをコピー (書出)</button>
+    <button class="btn-secondary" onclick="showImportModal()">データを貼付 (読込)</button>
   </div>
 </div>
 
@@ -254,6 +213,7 @@ rt { font-family: 'Noto Sans JP', sans-serif; font-size: 10px; color: #e11d48; f
   <div class="editor-wrapper">
     <div class="editor-paper">
       <div id="editor" class="editor" contenteditable="true" spellcheck="false"></div>
+      <div class="mobile-selection-hint">iPadでは文章を長押し→ハンドルを動かして選択できます。ツールバーを押しても選択範囲は保持されます。</div>
       <div class="notes-section" id="notes-section" style="display: none;">
         <div class="notes-title">Vocabulary & Notes</div>
         <div class="notes-grid" id="notes-grid"></div>
@@ -262,7 +222,6 @@ rt { font-family: 'Noto Sans JP', sans-serif; font-size: 10px; color: #e11d48; f
   </div>
 </div>
 
-<!-- Custom Modal System -->
 <div id="custom-modal" class="modal-overlay">
   <div class="modal-content">
     <h3 id="modal-title" class="modal-title">Title</h3>
@@ -274,62 +233,56 @@ rt { font-family: 'Noto Sans JP', sans-serif; font-size: 10px; color: #e11d48; f
 
 <div id="toast" class="toast">Status updated</div>
 
-<!-- Floating Toolbar -->
 <div id="floating-toolbar" class="floating-toolbar">
-  <!-- 段1: 基本SVOCM -->
   <div class="ft-row">
-    <button class="ft-btn role-s-btn" onmousedown="event.preventDefault(); applyRole('S')" style="font-size:16px;">S</button>
-    <button class="ft-btn role-v-btn" onmousedown="event.preventDefault(); applyRole('V')" style="font-size:16px;">V</button>
-    <button class="ft-btn role-o-btn" onmousedown="event.preventDefault(); applyRole('O')" style="font-size:16px;">O</button>
-    <button class="ft-btn role-c-btn" onmousedown="event.preventDefault(); applyRole('C')" style="font-size:16px;">C</button>
-    <button class="ft-btn role-m-btn" onmousedown="event.preventDefault(); applyRole('M')" style="font-size:16px;">M</button>
+    <button class="ft-btn role-s-btn" onpointerdown="event.preventDefault(); applyRole('S')" style="font-size:16px;">S</button>
+    <button class="ft-btn role-v-btn" onpointerdown="event.preventDefault(); applyRole('V')" style="font-size:16px;">V</button>
+    <button class="ft-btn role-o-btn" onpointerdown="event.preventDefault(); applyRole('O')" style="font-size:16px;">O</button>
+    <button class="ft-btn role-c-btn" onpointerdown="event.preventDefault(); applyRole('C')" style="font-size:16px;">C</button>
+    <button class="ft-btn role-m-btn" onpointerdown="event.preventDefault(); applyRole('M')" style="font-size:16px;">M</button>
   </div>
-  <!-- 段2: ダッシュ系 -->
   <div class="ft-row">
-    <button class="ft-btn role-s-btn" onmousedown="event.preventDefault(); applyRole(`S'`)">S'</button>
-    <button class="ft-btn role-v-btn" onmousedown="event.preventDefault(); applyRole(`V'`)">V'</button>
-    <button class="ft-btn role-o-btn" onmousedown="event.preventDefault(); applyRole(`O'`)">O'</button>
-    <button class="ft-btn role-c-btn" onmousedown="event.preventDefault(); applyRole(`C'`)">C'</button>
-    <button class="ft-btn role-m-btn" onmousedown="event.preventDefault(); applyRole(`M'`)">M'</button>
+    <button class="ft-btn role-s-btn" onpointerdown="event.preventDefault(); applyRole(`S'`)" >S'</button>
+    <button class="ft-btn role-v-btn" onpointerdown="event.preventDefault(); applyRole(`V'`)" >V'</button>
+    <button class="ft-btn role-o-btn" onpointerdown="event.preventDefault(); applyRole(`O'`)" >O'</button>
+    <button class="ft-btn role-c-btn" onpointerdown="event.preventDefault(); applyRole(`C'`)" >C'</button>
+    <button class="ft-btn role-m-btn" onpointerdown="event.preventDefault(); applyRole(`M'`)" >M'</button>
     <div class="ft-divider"></div>
-    <button class="ft-btn role-s-btn" onmousedown="event.preventDefault(); applyRole(`S&quot;`)">S"</button>
-    <button class="ft-btn role-v-btn" onmousedown="event.preventDefault(); applyRole(`V&quot;`)">V"</button>
-    <button class="ft-btn role-o-btn" onmousedown="event.preventDefault(); applyRole(`O&quot;`)">O"</button>
-    <button class="ft-btn role-c-btn" onmousedown="event.preventDefault(); applyRole(`C&quot;`)">C"</button>
-    <button class="ft-btn role-m-btn" onmousedown="event.preventDefault(); applyRole(`M&quot;`)">M"</button>
+    <button class="ft-btn role-s-btn" onpointerdown="event.preventDefault(); applyRole(`S&quot;`)" >S"</button>
+    <button class="ft-btn role-v-btn" onpointerdown="event.preventDefault(); applyRole(`V&quot;`)" >V"</button>
+    <button class="ft-btn role-o-btn" onpointerdown="event.preventDefault(); applyRole(`O&quot;`)" >O"</button>
+    <button class="ft-btn role-c-btn" onpointerdown="event.preventDefault(); applyRole(`C&quot;`)" >C"</button>
+    <button class="ft-btn role-m-btn" onpointerdown="event.preventDefault(); applyRole(`M&quot;`)" >M"</button>
   </div>
-  <!-- 段3: 添字系 -->
   <div class="ft-row">
-    <button class="ft-btn role-s-btn" onmousedown="event.preventDefault(); applyRole('S₁')">S<sub>1</sub></button>
-    <button class="ft-btn role-v-btn" onmousedown="event.preventDefault(); applyRole('V₁')">V<sub>1</sub></button>
-    <button class="ft-btn role-o-btn" onmousedown="event.preventDefault(); applyRole('O₁')">O<sub>1</sub></button>
-    <button class="ft-btn role-c-btn" onmousedown="event.preventDefault(); applyRole('C₁')">C<sub>1</sub></button>
+    <button class="ft-btn role-s-btn" onpointerdown="event.preventDefault(); applyRole('S₁')">S<sub>1</sub></button>
+    <button class="ft-btn role-v-btn" onpointerdown="event.preventDefault(); applyRole('V₁')">V<sub>1</sub></button>
+    <button class="ft-btn role-o-btn" onpointerdown="event.preventDefault(); applyRole('O₁')">O<sub>1</sub></button>
+    <button class="ft-btn role-c-btn" onpointerdown="event.preventDefault(); applyRole('C₁')">C<sub>1</sub></button>
     <div class="ft-divider"></div>
-    <button class="ft-btn role-s-btn" onmousedown="event.preventDefault(); applyRole('S₂')">S<sub>2</sub></button>
-    <button class="ft-btn role-v-btn" onmousedown="event.preventDefault(); applyRole('V₂')">V<sub>2</sub></button>
-    <button class="ft-btn role-o-btn" onmousedown="event.preventDefault(); applyRole('O₂')">O<sub>2</sub></button>
-    <button class="ft-btn role-c-btn" onmousedown="event.preventDefault(); applyRole('C₂')">C<sub>2</sub></button>
+    <button class="ft-btn role-s-btn" onpointerdown="event.preventDefault(); applyRole('S₂')">S<sub>2</sub></button>
+    <button class="ft-btn role-v-btn" onpointerdown="event.preventDefault(); applyRole('V₂')">V<sub>2</sub></button>
+    <button class="ft-btn role-o-btn" onpointerdown="event.preventDefault(); applyRole('O₂')">O<sub>2</sub></button>
+    <button class="ft-btn role-c-btn" onpointerdown="event.preventDefault(); applyRole('C₂')">C<sub>2</sub></button>
   </div>
-  <!-- 段4: カッコ・記号・語注 -->
   <div class="ft-row" style="margin-top: 2px; padding-top: 4px; border-top: 1px solid #374151;">
-    <button class="ft-btn" onmousedown="event.preventDefault(); wrapBracket('square')">[ ]</button>
-    <button class="ft-btn" onmousedown="event.preventDefault(); wrapBracket('round')">( )</button>
-    <button class="ft-btn" onmousedown="event.preventDefault(); wrapBracket('angle')">〈 〉</button>
+    <button class="ft-btn" onpointerdown="event.preventDefault(); wrapBracket('square')">[ ]</button>
+    <button class="ft-btn" onpointerdown="event.preventDefault(); wrapBracket('round')">( )</button>
+    <button class="ft-btn" onpointerdown="event.preventDefault(); wrapBracket('angle')">〈 〉</button>
     <div class="ft-divider"></div>
-    <button class="ft-btn" onmousedown="event.preventDefault(); insertOmission('▼')" style="color: #fca5a5;">▼</button>
-    <button class="ft-btn" onmousedown="event.preventDefault(); insertOmission('▼関代')" style="color: #fca5a5;">▼関代</button>
-    <button class="ft-btn" onmousedown="event.preventDefault(); insertOmission('▼that')" style="color: #fca5a5;">▼that</button>
+    <button class="ft-btn" onpointerdown="event.preventDefault(); insertOmission('▼')" style="color: #fca5a5;">▼</button>
+    <button class="ft-btn" onpointerdown="event.preventDefault(); insertOmission('▼関代')" style="color: #fca5a5;">▼関代</button>
+    <button class="ft-btn" onpointerdown="event.preventDefault(); insertOmission('▼that')" style="color: #fca5a5;">▼that</button>
     <div class="ft-divider"></div>
-    <button class="ft-btn" onmousedown="event.preventDefault(); promptAddNote()" style="color: #fff; background:#2563eb;">語注</button>
-    <button class="ft-btn" onmousedown="event.preventDefault(); removeFormatting()" style="color: #ef4444;" title="装飾解除">✖</button>
+    <button class="ft-btn" onpointerdown="event.preventDefault(); promptAddNote()" style="color: #fff; background:#2563eb;">語注</button>
+    <button class="ft-btn" onpointerdown="event.preventDefault(); removeFormatting()" style="color: #ef4444;" title="装飾解除">✖</button>
   </div>
-  <!-- 段5: 直下構文ラベル -->
   <div class="ft-row" style="margin-top: 2px;">
     <span style="font-size:10px; color:#9ca3af; margin-right:4px;">直下ラベル:</span>
-    <button class="ft-btn" onmousedown="event.preventDefault(); insertLabelBelow('関代')" style="color:#93c5fd;">関代</button>
-    <button class="ft-btn" onmousedown="event.preventDefault(); insertLabelBelow('接')" style="color:#93c5fd;">接</button>
-    <button class="ft-btn" onmousedown="event.preventDefault(); insertLabelBelow('疑')" style="color:#93c5fd;">疑</button>
-    <button class="ft-btn" onmousedown="event.preventDefault(); insertLabelBelow('同格')" style="color:#93c5fd;">同格</button>
+    <button class="ft-btn" onpointerdown="event.preventDefault(); insertLabelBelow('関代')" style="color:#93c5fd;">関代</button>
+    <button class="ft-btn" onpointerdown="event.preventDefault(); insertLabelBelow('接')" style="color:#93c5fd;">接</button>
+    <button class="ft-btn" onpointerdown="event.preventDefault(); insertLabelBelow('疑')" style="color:#93c5fd;">疑</button>
+    <button class="ft-btn" onpointerdown="event.preventDefault(); insertLabelBelow('同格')" style="color:#93c5fd;">同格</button>
   </div>
 </div>
 
@@ -346,6 +299,54 @@ const editor = document.getElementById('editor');
 let historyStack = [];
 let historyIndex = -1;
 let isRestoringHistory = false;
+
+// iPad/Safari対策: 選択範囲の保持
+let savedSelectionRange = null;
+let selectionSaveTimer = null;
+let editorSelectionActive = false;
+
+function saveCurrentSelection() {
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0) return;
+  const r = sel.getRangeAt(0);
+  if (!editor.contains(r.commonAncestorContainer)) return;
+  if (!sel.isCollapsed) {
+    savedSelectionRange = r.cloneRange();
+  }
+}
+
+function restoreSavedSelection() {
+  if (!savedSelectionRange) return false;
+  try {
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(savedSelectionRange.cloneRange());
+    return true;
+  } catch (e) {
+    savedSelectionRange = null;
+    return false;
+  }
+}
+
+document.addEventListener('selectionchange', () => {
+  clearTimeout(selectionSaveTimer);
+  selectionSaveTimer = setTimeout(() => {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount && editor.contains(sel.anchorNode) && !sel.isCollapsed) {
+      editorSelectionActive = true;
+      saveCurrentSelection();
+    }
+  }, 0);
+});
+
+document.addEventListener('pointerdown', (e) => {
+  if (e.target.closest('button, input, textarea, select')) {
+    if (window.getSelection()?.rangeCount && !window.getSelection().isCollapsed) {
+      saveCurrentSelection();
+    }
+  }
+}, {capture:true});
+
 
 window.onload = () => {
   renderDocList();
@@ -382,9 +383,12 @@ const modal = {
       }
       inputEl.placeholder = inputConfig.placeholder || '';
       inputEl.value = inputConfig.value || '';
+      if(inputConfig.readonly) inputEl.setAttribute('readonly', 'readonly');
       this.inputs.appendChild(inputEl);
       
       // Enterキーで主要ボタン（青色）を押した扱いに機能復活
+      this.inputs.appendChild(inputEl);
+      
       if (inputConfig.type !== 'textarea') {
           inputEl.addEventListener('keydown', (e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
@@ -401,14 +405,14 @@ const modal = {
       button.className = `btn ${btn.class || ''}`;
       button.textContent = btn.text;
       button.onclick = () => {
-        if(btn.onClick) btn.onClick(inputEl ? inputEl.value : null);
-        this.hide();
+        const shouldKeepOpen = btn.onClick ? btn.onClick(inputEl ? inputEl.value : null) : false;
+        if (!shouldKeepOpen) this.hide();
       };
       this.actions.appendChild(button);
     });
     
     this.overlay.classList.add('active');
-    if(inputEl) setTimeout(() => inputEl.focus(), 100);
+    if(inputEl && !inputConfig.readonly) setTimeout(() => inputEl.focus(), 100);
   },
   hide() { this.overlay.classList.remove('active'); }
 };
@@ -469,10 +473,16 @@ function createNewDoc() {
 }
 
 function deleteDoc(id) {
-  docs = docs.filter(d => d.id !== id);
-  if (currentDocId === id) loadDoc(docs[0].id);
-  else renderDocList();
-  saveData();
+  modal.show('削除確認', 'このドキュメントを削除しますか？', [
+    { text: 'キャンセル' },
+    { text: '削除', class: 'danger', onClick: () => {
+        docs = docs.filter(d => d.id !== id);
+        if (currentDocId === id) loadDoc(docs[0].id);
+        else renderDocList();
+        saveData();
+      }
+    }
+  ]);
 }
 
 function updateDocTitle(title) {
@@ -484,6 +494,73 @@ function saveData() {
   const currentDoc = docs.find(d => d.id === currentDocId);
   if (currentDoc) currentDoc.content = editor.innerHTML;
   localStorage.setItem('ese_docs_pro', JSON.stringify(docs));
+}
+
+// -----------------------------------------------------
+// ★ テキストベースのデータ同期機能（コピペ用）
+// -----------------------------------------------------
+function exportDataAsText() {
+  saveData();
+  const dataStr = JSON.stringify(docs);
+  
+  modal.show('データの書き出し（コピー）', 
+    '下の枠内にあるテキストをすべてコピーし、別の端末で「読み込む」から貼り付けてください。', 
+    [
+      { text: '閉じる', class: 'btn' },
+      { text: 'テキストをコピー', class: 'primary', onClick: () => {
+          const ta = document.querySelector('.modal-input');
+          if(ta) {
+            ta.select();
+            document.execCommand('copy');
+            showToast('クリップボードにコピーしました！');
+          }
+          return true; // モーダルを閉じない
+        }
+      }
+    ], 
+    { type: 'textarea', value: dataStr, readonly: true }
+  );
+}
+
+function showImportModal() {
+  modal.show('データの読み込み（貼り付け）', 
+    '別の端末でコピーしたデータのテキストを、下の枠内に貼り付けてください。', 
+    [
+      { text: 'キャンセル', class: 'btn' },
+      { text: '追加する', class: 'btn', onClick: (val) => { processImport(val, 'add'); } },
+      { text: 'すべて上書き', class: 'danger', onClick: (val) => { processImport(val, 'overwrite'); } }
+    ], 
+    { type: 'textarea', placeholder: '[{"id":...}] データをここに貼り付け' }
+  );
+}
+
+function processImport(jsonString, mode) {
+  if(!jsonString || jsonString.trim() === '') {
+    showToast('テキストが入力されていません');
+    return;
+  }
+  try {
+    const importedDocs = JSON.parse(jsonString);
+    if (!Array.isArray(importedDocs) || importedDocs.length === 0 || !importedDocs[0].id || !importedDocs[0].content) {
+      throw new Error("正しいデータ形式ではありません");
+    }
+    if (mode === 'add') {
+      importedDocs.forEach(doc => {
+        doc.id = Date.now() + Math.floor(Math.random() * 1000);
+        docs.push(doc);
+      });
+      saveData();
+      renderDocList();
+      showToast('データを追加しました');
+    } else if (mode === 'overwrite') {
+      docs = importedDocs;
+      saveData();
+      loadDoc(docs[0].id);
+      showToast('データを上書きしました');
+    }
+  } catch (error) {
+    alert("データの読み込みに失敗しました。\n詳細: " + error.message);
+  }
 }
 
 function saveHistory() {
@@ -535,66 +612,86 @@ function showInputTextModal() {
   ], { type: 'textarea', placeholder: 'ここに英文を貼り付け...' });
 }
 
-// -----------------------------------------------------
-// ★ 単語スナップ機能の完全復活
-// -----------------------------------------------------
+
 function getSelectionRange(allowWordFallback = false) {
   const sel = window.getSelection();
-  if (!sel || sel.rangeCount === 0) return null;
-  const r = sel.getRangeAt(0);
-
-  // ドラッグ選択時：単語の途中から選択しても、単語の境界まで自動で広げる
-  if (!sel.isCollapsed) {
-    if (!editor.contains(r.commonAncestorContainer)) return null;
-    
-    const isWordChar = c => /[A-Za-z0-9'’-]/.test(c);
-    let startNode = r.startContainer;
-    let startOffset = r.startOffset;
-    let endNode = r.endContainer;
-    let endOffset = r.endOffset;
-
-    if (startNode.nodeType === Node.TEXT_NODE) {
-      let text = startNode.textContent;
-      while (startOffset > 0 && isWordChar(text[startOffset - 1])) startOffset--;
-    }
-    if (endNode.nodeType === Node.TEXT_NODE) {
-      let text = endNode.textContent;
-      while (endOffset < text.length && isWordChar(text[endOffset])) endOffset++;
-    }
-    
-    try {
-      const newRange = document.createRange();
-      newRange.setStart(startNode, startOffset);
-      newRange.setEnd(endNode, endOffset);
-      return newRange;
-    } catch (e) {
-      return r;
+  if (sel && sel.rangeCount > 0) {
+    const r = sel.getRangeAt(0);
+    if (editor.contains(r.commonAncestorContainer)) {
+      if (!sel.isCollapsed) {
+        const isWordChar = c => /[A-Za-z0-9'’-]/.test(c);
+        let startNode = r.startContainer;
+        let startOffset = r.startOffset;
+        let endNode = r.endContainer;
+        let endOffset = r.endOffset;
+        if (startNode.nodeType === Node.TEXT_NODE) {
+          const text = startNode.textContent;
+          while (startOffset > 0 && isWordChar(text[startOffset - 1])) startOffset--;
+        }
+        if (endNode.nodeType === Node.TEXT_NODE) {
+          const text = endNode.textContent;
+          while (endOffset < text.length && isWordChar(text[endOffset])) endOffset++;
+        }
+        try {
+          const expanded = document.createRange();
+          expanded.setStart(startNode, startOffset);
+          expanded.setEnd(endNode, endOffset);
+          return expanded;
+        } catch(e) { return r.cloneRange(); }
+      }
+      if (allowWordFallback && sel.isCollapsed) {
+        let node = sel.anchorNode;
+        let offset = sel.anchorOffset;
+        if (node && node.nodeType !== Node.TEXT_NODE) {
+          const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+          node = walker.nextNode();
+        }
+        if (node) {
+          const text = node.textContent;
+          let pos = Math.min(offset, text.length);
+          const isWordChar = c => /[A-Za-z0-9'’-]/.test(c);
+          if (pos === text.length) pos--;
+          if (pos >= 0 && !isWordChar(text[pos]) && pos > 0 && isWordChar(text[pos-1])) pos--;
+          if (pos >= 0 && isWordChar(text[pos])) {
+            let start = pos, end = pos + 1;
+            while (start > 0 && isWordChar(text[start-1])) start--;
+            while (end < text.length && isWordChar(text[end])) end++;
+            const wr = document.createRange();
+            wr.setStart(node,start); wr.setEnd(node,end);
+            return wr;
+          }
+        }
+      }
     }
   }
-  
-  // クリック時（カーソルのみ）のフォールバック：その位置にある単語を選択する
-  if (allowWordFallback && editor.contains(sel.anchorNode)) {
-    let node = sel.anchorNode;
-    let offset = sel.anchorOffset;
-    if (node.nodeType !== Node.TEXT_NODE) {
-      const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
-      node = walker.nextNode();
+
+  if (restoreSavedSelection()) {
+    const restored = window.getSelection().getRangeAt(0);
+    if (!restored.collapsed && editor.contains(restored.commonAncestorContainer)) {
+      const isWordChar = c => /[A-Za-z0-9'’-]/.test(c);
+      let startNode = restored.startContainer, startOffset = restored.startOffset;
+      let endNode = restored.endContainer, endOffset = restored.endOffset;
+      if (startNode.nodeType === Node.TEXT_NODE) {
+        const text=startNode.textContent;
+        while(startOffset>0 && isWordChar(text[startOffset-1])) startOffset--;
+      }
+      if (endNode.nodeType === Node.TEXT_NODE) {
+        const text=endNode.textContent;
+        while(endOffset<text.length && isWordChar(text[endOffset])) endOffset++;
+      }
+      try {
+        const expanded=document.createRange();
+        expanded.setStart(startNode,startOffset); expanded.setEnd(endNode,endOffset);
+        return expanded;
+      } catch(e) { return restored.cloneRange(); }
     }
-    if (!node) return null;
-    const text = node.textContent;
-    let pos = Math.min(offset, text.length);
-    const isWordChar = c => /[A-Za-z0-9'’-]/.test(c);
-    if (pos === text.length) pos--;
-    if (pos >= 0 && !isWordChar(text[pos]) && pos > 0 && isWordChar(text[pos - 1])) pos--;
-    if (pos < 0 || !isWordChar(text[pos])) return null;
-    let start = pos, end = pos + 1;
-    while (start > 0 && isWordChar(text[start - 1])) start--;
-    while (end < text.length && isWordChar(text[end])) end++;
-    const wr = document.createRange(); 
-    wr.setStart(node, start); wr.setEnd(node, end); 
-    return wr;
   }
   return null;
+}
+
+function clearSavedSelection() {
+  savedSelectionRange = null;
+  editorSelectionActive = false;
 }
 
 function applyRole(role) {
@@ -602,18 +699,13 @@ function applyRole(role) {
   if (!r) return;
   
   const span = document.createElement("span");
-  
-  // 色判定用（記号を除去）
   const baseRole = role.replace(/['"₁₂₃₄₅₆₇₈₉₀&quot;]/g, ""); 
   
-  // 階層(Padding)判定
-  let levelClass = " role-level-1"; // S, V... 一番下
-  if (role.includes('"') || role.includes('&quot;')) levelClass = " role-level-3"; // S"... 一番上
-  else if (role.includes("'")) levelClass = " role-level-2"; // S'... 真ん中
+  let levelClass = " role-level-1"; 
+  if (role.includes('"') || role.includes('&quot;')) levelClass = " role-level-3"; 
+  else if (role.includes("'")) levelClass = " role-level-2"; 
   
   span.className = "token role-" + baseRole + levelClass;
-  span.setAttribute("data-base-role", baseRole);
-  
   const label = document.createElement("span");
   label.className = "role-label";
   label.innerHTML = role.replace(/"/g, '&quot;');
@@ -622,6 +714,7 @@ function applyRole(role) {
   span.appendChild(r.extractContents());
   r.insertNode(span);
   window.getSelection().removeAllRanges();
+  clearSavedSelection();
   saveHistory();
   hideFloatingToolbar();
 }
@@ -653,6 +746,7 @@ function wrapBracket(type) {
   span.append(leftHandle, content, rightHandle);
   r.insertNode(span);
   window.getSelection().removeAllRanges();
+  clearSavedSelection();
   saveHistory();
   hideFloatingToolbar();
 }
@@ -673,13 +767,11 @@ function applyNote(range, inputValue, isRuby) {
   let dictWord = parts[0].trim();
   let meaning = parts.slice(1).join(':').trim();
   
-  // 訳だけ書かれた場合（コロンが無い場合）の処理
   if (!meaning) {
     meaning = dictWord; 
     dictWord = range.toString().trim();
   }
 
-  // ★本文の文字列と、入力された単語（dictWord）が違うか判定
   const originalText = range.toString().trim();
   const isEdited = (dictWord !== originalText);
 
@@ -691,12 +783,8 @@ function applyNote(range, inputValue, isRuby) {
     wrapper.appendChild(range.extractContents());
     const rt = document.createElement("rt");
     
-    // ★編集されていたら「単語＝訳」、されていなければ「訳」のみを表示
-    if (isEdited) {
-      rt.textContent = `${dictWord} = ${meaning}`;
-    } else {
-      rt.textContent = meaning;
-    }
+    if (isEdited) rt.textContent = `${dictWord} = ${meaning}`;
+    else rt.textContent = meaning;
     
     wrapper.appendChild(rt);
   } else {
@@ -708,6 +796,7 @@ function applyNote(range, inputValue, isRuby) {
   
   range.insertNode(wrapper);
   window.getSelection().removeAllRanges();
+  clearSavedSelection();
   updateNotesDisplay();
   saveHistory();
 }
@@ -720,12 +809,13 @@ function insertLabelBelow(labelTxt) {
   wrapper.appendChild(r.extractContents());
   const rt = document.createElement("rt");
   rt.textContent = labelTxt;
-  rt.style.color = "#2563eb"; // 青色
+  rt.style.color = "#2563eb";
   rt.style.fontWeight = "bold";
   wrapper.appendChild(rt);
   
   r.insertNode(wrapper);
   window.getSelection().removeAllRanges();
+  clearSavedSelection();
   saveHistory();
   hideFloatingToolbar();
 }
@@ -789,18 +879,20 @@ function removeFormatting() {
   });
   r.insertNode(frag);
   window.getSelection().removeAllRanges();
+  clearSavedSelection();
   updateNotesDisplay();
   saveHistory();
   hideFloatingToolbar();
 }
 
-// Floating Toolbar Logic
 let selectionTimeout;
 document.addEventListener("selectionchange", () => {
+  if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) return;
   clearTimeout(selectionTimeout);
-  selectionTimeout = setTimeout(() => { showFloatingToolbar(); }, 250); 
+  selectionTimeout = setTimeout(() => { showFloatingToolbar(); }, 250);
 });
 editor.addEventListener("click", (e) => {
+  if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) return;
   const sel = window.getSelection();
   if(sel && sel.isCollapsed) showFloatingToolbar(e);
 });
