@@ -38,7 +38,6 @@ body { margin: 0; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic Pr
 .doc-item-delete { color: #fca5a5; font-size: 16px; width: 24px; text-align: center; border-radius: 4px; opacity: 0.5; }
 .doc-item-delete:hover { opacity: 1; background: rgba(255,0,0,0.2); }
 .sidebar-footer { padding: 15px; border-top: 1px solid #374151; display: flex; flex-direction: column; gap: 8px; }
-
 .btn-new-doc { width: 100%; padding: 10px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px; }
 .btn-new-doc:hover { background: #2563eb; }
 .btn-secondary { width: 100%; padding: 8px; background: transparent; color: #e5e7eb; border: 1px solid #4b5563; border-radius: 6px; cursor: pointer; font-size: 12px; text-align: center; margin-top: 8px; }
@@ -52,7 +51,6 @@ body { margin: 0; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic Pr
 .toolbar-row { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; }
 .toolbar-group { display: flex; gap: 4px; border-right: 1px solid #e5e7eb; padding-right: 15px; align-items: center; }
 .toolbar-group:last-child { border-right: none; }
-
 .btn { border: 1px solid #d1d5db; background: white; border-radius: 6px; padding: 6px 10px; cursor: pointer; font-size: 13px; color: #374151; display: inline-flex; align-items: center; justify-content: center; transition: all 0.1s; }
 .btn:hover { background: #f3f4f6; border-color: #9ca3af; }
 .btn:active { transform: scale(0.97); }
@@ -73,6 +71,8 @@ body { margin: 0; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic Pr
 .mobile-selection-hint { display:none; }
 @media (pointer: coarse) { .mobile-selection-hint { display:block; margin-top:18px; font: 12px/1.5 -apple-system,BlinkMacSystemFont,sans-serif; color:#9ca3af; } }
 
+.print-legend { display: none; }
+
 /* Input Source Modal */
 .token { position: relative; display: inline; margin: 0 1px; }
 
@@ -86,12 +86,20 @@ body { margin: 0; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic Pr
 .role-level-2 { padding-bottom: 3px; }
 .role-level-3 { padding-bottom: 1px; }
 
-.role-label { font-size: 11px; font-weight: bold; position: absolute; top: -1.3em; left: 50%; transform: translateX(-50%); line-height: 1; font-family: Arial, sans-serif; pointer-events: none;}
-.role-S .role-label { color: var(--c-s-text); }
-.role-V .role-label { color: var(--c-v-text); }
-.role-O .role-label { color: var(--c-o-text); }
-.role-C .role-label { color: var(--c-c-text); }
-.role-M .role-label { color: var(--c-m-text); }
+/* SVOCラベルをドラッグ＆ドロップ可能に */
+.role-label { 
+    font-size: 11px; font-weight: bold; position: absolute; bottom: -1.3em; left: 50%; 
+    transform: translateX(-50%); line-height: 1; font-family: Arial, sans-serif; 
+    cursor: grab; user-select: none; z-index: 10; touch-action: none;
+}
+.role-label:active { cursor: grabbing; }
+
+/* 直下(>)の.role-labelにのみ色を適用し、入れ子時の色かぶりを防ぐ */
+.role-S > .role-label { color: var(--c-s-text); }
+.role-V > .role-label { color: var(--c-v-text); }
+.role-O > .role-label { color: var(--c-o-text); }
+.role-C > .role-label { color: var(--c-c-text); }
+.role-M > .role-label { color: var(--c-m-text); }
 
 .bracket { display: inline; }
 .b-handle { cursor: ew-resize; user-select: none; font-weight: bold; color: #4b5563; font-size: 1.1em; padding: 0 2px; display: inline-block; transition: transform 0.1s; font-family: Arial, sans-serif; }
@@ -100,8 +108,18 @@ body { margin: 0; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic Pr
 
 .omission { color: rgba(225, 29, 72, 0.7); font-weight: normal; margin: 0 2px; font-size: 0.9em; cursor: pointer; display: inline-block; }
 
-ruby { ruby-position: under; ruby-align: center; }
-rt { font-family: 'Noto Sans JP', sans-serif; font-size: 10px; color: #e11d48; font-weight: normal; line-height: 1; user-select: none; padding-top: 8px; }
+/* ルビのベースに position: relative を指定して、rt の基準にする */
+ruby { ruby-position: under; ruby-align: center; position: relative; }
+
+/* 語注（rt）を絶対位置(absolute)にして、文字間の余白を詰める */
+rt { 
+    font-family: 'Noto Sans JP', sans-serif; font-size: 10px; color: #e11d48; font-weight: normal; 
+    line-height: 1; user-select: none;
+    position: absolute; left: 50%; top: 1.4em; transform: translateX(-50%);
+    white-space: nowrap; /* テキストの折り返しを防ぐ */
+    cursor: grab; z-index: 10; touch-action: none;
+}
+rt:active { cursor: grabbing; }
 .has-note { cursor: help; position: relative; }
 .has-note::after { content: attr(data-num); position: absolute; top: -0.8em; right: -0.5em; font-size: 10px; color: #ef4444; font-weight: bold; font-family: Arial; }
 
@@ -138,15 +156,11 @@ rt { font-family: 'Noto Sans JP', sans-serif; font-size: 10px; color: #e11d48; f
   .sidebar, .toolbar-container, .no-print, #floating-toolbar { display: none !important; }
   body, .main-area, .editor-wrapper, .editor-paper { height: auto; overflow: visible; background: white; margin: 0; padding: 0; display: block; box-shadow: none; border: none; }
   .editor-paper { padding: 15px; } 
+  .print-legend { display: block; font-size: 12px; margin-bottom: 10px; text-align: right; }
   .notes-section { page-break-inside: avoid; margin-top: 20px; border-top: 1px solid #000; padding-top: 10px; }
   .note-item { border-bottom: none; padding: 2px 0; }
-  
-  .token.role-S { background: var(--c-s-bg) !important; }
-  .token.role-V { background: var(--c-v-bg) !important; }
-  .token.role-O { background: var(--c-o-bg) !important; }
-  .token.role-C { background: var(--c-c-bg) !important; }
-  .token.role-M { background: var(--c-m-bg) !important; }
 
+  /* 生徒用PDF：色とラベルを消去 */
   body.print-student .role-label { display: none !important; }
   body.print-student .token { background: transparent !important; border-bottom: none !important; }
   body.print-student .b-handle { display: inline-block !important; }
@@ -202,6 +216,14 @@ rt { font-family: 'Noto Sans JP', sans-serif; font-size: 10px; color: #e11d48; f
         <button class="btn" onclick="applyRole('C')" style="color:var(--c-c-text); font-weight:bold;">C</button>
         <button class="btn" onclick="applyRole('M')" style="color:var(--c-m-text); font-weight:bold;">M</button>
       </div>
+      <!-- メインツールバーにも S' V' O' C' M' を追加 -->
+      <div class="toolbar-group">
+        <button class="btn" onclick="applyRole(`S'`)" style="color:var(--c-s-text); font-weight:bold;">S'</button>
+        <button class="btn" onclick="applyRole(`V'`)" style="color:var(--c-v-text); font-weight:bold;">V'</button>
+        <button class="btn" onclick="applyRole(`O'`)" style="color:var(--c-o-text); font-weight:bold;">O'</button>
+        <button class="btn" onclick="applyRole(`C'`)" style="color:var(--c-c-text); font-weight:bold;">C'</button>
+        <button class="btn" onclick="applyRole(`M'`)" style="color:var(--c-m-text); font-weight:bold;">M'</button>
+      </div>
       <div class="toolbar-group">
         <button class="btn danger" onclick="removeFormatting()" title="選択範囲の装飾を解除">装飾解除</button>
       </div>
@@ -214,6 +236,7 @@ rt { font-family: 'Noto Sans JP', sans-serif; font-size: 10px; color: #e11d48; f
 
   <div class="editor-wrapper">
     <div class="editor-paper">
+      <div class="print-legend">名詞句・節は [ ]、形容詞句・節は ( )、副詞句・節は &lt;&gt;、{}は並列関係を表す</div>
       <div id="editor" class="editor" contenteditable="true" spellcheck="false"></div>
       <div class="mobile-selection-hint">iPadでは文章を長押し→ハンドルを動かして選択できます。ツールバーを押しても選択範囲は保持されます。</div>
       <div class="notes-section" id="notes-section" style="display: none;">
@@ -271,6 +294,7 @@ rt { font-family: 'Noto Sans JP', sans-serif; font-size: 10px; color: #e11d48; f
     <button class="ft-btn" onpointerdown="event.preventDefault(); wrapBracket('square')">[ ]</button>
     <button class="ft-btn" onpointerdown="event.preventDefault(); wrapBracket('round')">( )</button>
     <button class="ft-btn" onpointerdown="event.preventDefault(); wrapBracket('angle')">〈 〉</button>
+    <button class="ft-btn" onpointerdown="event.preventDefault(); wrapBracket('curly')">{ }</button>
     <div class="ft-divider"></div>
     <button class="ft-btn" onpointerdown="event.preventDefault(); insertOmission('▼')" style="color: #fca5a5;">▼</button>
     <button class="ft-btn" onpointerdown="event.preventDefault(); insertOmission('▼関代')" style="color: #fca5a5;">▼関代</button>
@@ -289,7 +313,12 @@ rt { font-family: 'Noto Sans JP', sans-serif; font-size: 10px; color: #e11d48; f
 </div>
 
 <script>
+// -----------------------------------------------------
+// ★ 1. 初期化とデータ読み込み
+// -----------------------------------------------------
 let docs = [];
+
+// localStorageからの読み込みを安全に行う（エラー時は初期化）
 try {
   const storedData = localStorage.getItem('ese_docs_pro');
   if (storedData) {
@@ -299,8 +328,9 @@ try {
   console.warn('ローカルデータの読み込みに失敗しました。', e);
 }
 
+// データが空、または不正な場合は初期データを作成
 if (!Array.isArray(docs) || docs.length === 0) {
-    docs = [{ id: Date.now(), title: '最初のドキュメント', content: '<p>ここに英文を入力してください。</p>' }];
+  docs = [{ id: Date.now(), title: '最初のドキュメント', content: '<p>ここに英文を入力してください。</p>' }];
 }
 
 let currentDocId = docs[0].id;
@@ -310,7 +340,9 @@ let historyStack = [];
 let historyIndex = -1;
 let isRestoringHistory = false;
 
-// iPad/Safari対策: 選択範囲の保持
+// -----------------------------------------------------
+// ★ 2. 選択範囲（iPad/Safari対応）の処理
+// -----------------------------------------------------
 let savedSelectionRange = null;
 let selectionSaveTimer = null;
 let editorSelectionActive = false;
@@ -357,15 +389,19 @@ document.addEventListener('pointerdown', (e) => {
   }
 }, {capture:true});
 
+// -----------------------------------------------------
+// ★ 3. メインフロー（起動時、自動保存）
+// -----------------------------------------------------
 window.onload = () => {
   renderDocList();
-  loadDoc(currentDocId); // 初期ロード
+  loadDoc(currentDocId); // 初期ドキュメントの読み込み
+
   editor.addEventListener('input', () => {
     if(!isRestoringHistory) saveHistory();
     updateNotesDisplay();
   });
-  
-  // 自動保存：一定間隔および画面遷移時に保存を試みる
+
+  // 自動保存
   const autoSave = () => {
     try {
       saveData();
@@ -374,11 +410,15 @@ window.onload = () => {
     }
   };
 
-  setInterval(autoSave, 30000);
+  setInterval(autoSave, 15000); // 15秒ごとに短縮して保存を確実にする
   window.addEventListener('pagehide', autoSave);
   window.addEventListener('beforeunload', autoSave);
+  autoSave();
 };
 
+// -----------------------------------------------------
+// ★ 4. UIコンポーネント (Modal, Toast)
+// -----------------------------------------------------
 const modal = {
   overlay: document.getElementById('custom-modal'),
   title: document.getElementById('modal-title'),
@@ -443,6 +483,9 @@ function showToast(msg) {
   setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
+// -----------------------------------------------------
+// ★ 5. ドキュメント管理 (一覧、読込、新規、削除、保存)
+// -----------------------------------------------------
 function renderDocList() {
   const list = document.getElementById('doc-list');
   list.innerHTML = '';
@@ -467,7 +510,6 @@ function renderDocList() {
 }
 
 function loadDoc(id) {
-  // ★修正: 別のドキュメントから切り替える時のみ、現在のエディタの内容を保存する
   if (currentDocId && currentDocId !== id) {
     const currentDoc = docs.find(d => d.id === currentDocId);
     if (currentDoc) currentDoc.content = editor.innerHTML;
@@ -488,9 +530,11 @@ function loadDoc(id) {
 }
 
 function createNewDoc() {
-  // 重複しないようにランダム値を付与
+  saveData();
+  
   const newId = Date.now() + Math.floor(Math.random() * 1000);
   const newDoc = { id: newId, title: '新規ドキュメント', content: '<p><br></p>' };
+  
   docs.push(newDoc);
   loadDoc(newId);
 }
@@ -510,7 +554,11 @@ function deleteDoc(id) {
 
 function updateDocTitle(title) {
   const doc = docs.find(d => d.id === currentDocId);
-  if (doc) { doc.title = title || '無題'; renderDocList(); saveData(); }
+  if (doc) {
+    doc.title = title || '無題';
+    renderDocList();
+    saveData();
+  }
 }
 
 function saveData() {
@@ -521,12 +569,12 @@ function saveData() {
     localStorage.setItem('ese_docs_pro', JSON.stringify(docs));
   } catch (e) {
     console.error('保存エラー:', e);
-    showToast('エラー: 保存に失敗しました。データ容量が上限の可能性があります。');
+    showToast('エラー: 保存に失敗しました。容量上限などの問題があります。');
   }
 }
 
 // -----------------------------------------------------
-// ★ テキストベースのデータ同期機能（コピペ用）
+// ★ 6. データの入出力 (エクスポート/インポート)
 // -----------------------------------------------------
 function exportDataAsText() {
   saveData();
@@ -543,7 +591,7 @@ function exportDataAsText() {
             document.execCommand('copy');
             showToast('クリップボードにコピーしました！');
           }
-          return true; // モーダルを閉じない
+          return true;
         }
       }
     ], 
@@ -552,7 +600,6 @@ function exportDataAsText() {
 }
 
 function showImportModal() {
-  // ★修正: 「すべて上書き」ボタンを削除
   modal.show('データの読み込み（貼り付け）', 
     '別の端末でコピーしたデータのテキストを、下の枠内に貼り付けてください。', 
     [
@@ -574,11 +621,11 @@ function processImport(jsonString) {
       throw new Error("正しいデータ形式ではありません");
     }
     
-    // 現在のリストに追加する（IDが重複しないように再生成する）
     importedDocs.forEach(doc => {
       doc.id = Date.now() + Math.floor(Math.random() * 1000);
       docs.push(doc);
     });
+    
     saveData();
     renderDocList();
     showToast('データを追加しました');
@@ -588,6 +635,9 @@ function processImport(jsonString) {
   }
 }
 
+// -----------------------------------------------------
+// ★ 7. エディタの編集・装飾機能
+// -----------------------------------------------------
 function saveHistory() {
   const content = editor.innerHTML;
   if (historyIndex >= 0 && historyStack[historyIndex] === content) return;
@@ -752,6 +802,7 @@ function wrapBracket(type) {
   let leftChar = "[", rightChar = "]";
   if (type === "round") { leftChar = "("; rightChar = ")"; }
   else if (type === "angle") { leftChar = "〈"; rightChar = "〉"; }
+  else if (type === "curly") { leftChar = "{"; rightChar = "}"; }
   
   const leftHandle = document.createElement("span");
   leftHandle.className = "b-handle left";
@@ -962,6 +1013,62 @@ function printDocument(mode) {
     window.removeEventListener('afterprint', cleanup);
   });
 }
+
+// -----------------------------------------------------
+// ★ 8. ラベル・語注のドラッグ＆ドロップ機能
+// -----------------------------------------------------
+let isDraggingLabel = false;
+let dragLabelTarget = null;
+let dragStartX = 0;
+let dragStartY = 0;
+let initialDx = 0;
+let initialDy = 0;
+
+editor.addEventListener('pointerdown', (e) => {
+  const target = e.target;
+  if (target.classList.contains('role-label') || target.tagName.toLowerCase() === 'rt') {
+    e.preventDefault(); 
+    e.stopPropagation();
+    isDraggingLabel = true;
+    dragLabelTarget = target;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    
+    // 現在の移動量（カスタムデータ属性）を取得
+    initialDx = parseFloat(target.getAttribute('data-dx')) || 0;
+    initialDy = parseFloat(target.getAttribute('data-dy')) || 0;
+    
+    target.setPointerCapture(e.pointerId);
+  }
+});
+
+editor.addEventListener('pointermove', (e) => {
+  if (!isDraggingLabel || !dragLabelTarget) return;
+  
+  const dx = e.clientX - dragStartX;
+  const dy = e.clientY - dragStartY;
+  const newDx = initialDx + dx;
+  const newDy = initialDy + dy;
+  
+  dragLabelTarget.setAttribute('data-dx', newDx);
+  dragLabelTarget.setAttribute('data-dy', newDy);
+  
+  if (dragLabelTarget.classList.contains('role-label') || dragLabelTarget.tagName.toLowerCase() === 'rt') {
+    // role-labelもrtも中央揃えのためのtranslateX(-50%)がかかっているので、それを維持しつつ移動
+    dragLabelTarget.style.transform = `translate(calc(-50% + ${newDx}px), ${newDy}px)`;
+  } else {
+    dragLabelTarget.style.transform = `translate(${newDx}px, ${newDy}px)`;
+  }
+});
+
+editor.addEventListener('pointerup', (e) => {
+  if (isDraggingLabel && dragLabelTarget) {
+    dragLabelTarget.releasePointerCapture(e.pointerId);
+    isDraggingLabel = false;
+    dragLabelTarget = null;
+    saveHistory(); // ドラッグ後の位置を保存履歴に追加
+  }
+});
 </script>
 </body>
 </html>
