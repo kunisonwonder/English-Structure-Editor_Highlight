@@ -38,6 +38,7 @@ body { margin: 0; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic Pr
 .doc-item-delete { color: #fca5a5; font-size: 16px; width: 24px; text-align: center; border-radius: 4px; opacity: 0.5; }
 .doc-item-delete:hover { opacity: 1; background: rgba(255,0,0,0.2); }
 .sidebar-footer { padding: 15px; border-top: 1px solid #374151; display: flex; flex-direction: column; gap: 8px; }
+
 .btn-new-doc { width: 100%; padding: 10px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px; }
 .btn-new-doc:hover { background: #2563eb; }
 .btn-secondary { width: 100%; padding: 8px; background: transparent; color: #e5e7eb; border: 1px solid #4b5563; border-radius: 6px; cursor: pointer; font-size: 12px; text-align: center; margin-top: 8px; }
@@ -51,6 +52,7 @@ body { margin: 0; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic Pr
 .toolbar-row { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; }
 .toolbar-group { display: flex; gap: 4px; border-right: 1px solid #e5e7eb; padding-right: 15px; align-items: center; }
 .toolbar-group:last-child { border-right: none; }
+
 .btn { border: 1px solid #d1d5db; background: white; border-radius: 6px; padding: 6px 10px; cursor: pointer; font-size: 13px; color: #374151; display: inline-flex; align-items: center; justify-content: center; transition: all 0.1s; }
 .btn:hover { background: #f3f4f6; border-color: #9ca3af; }
 .btn:active { transform: scale(0.97); }
@@ -287,12 +289,20 @@ rt { font-family: 'Noto Sans JP', sans-serif; font-size: 10px; color: #e11d48; f
 </div>
 
 <script>
-let docs = JSON.parse(localStorage.getItem('ese_docs_pro')) || [
-  { id: Date.now(), title: '最初のドキュメント', content: '<p>ここに英文を入力してください。</p>' }
-];
+let docs = [];
+try {
+  const storedData = localStorage.getItem('ese_docs_pro');
+  if (storedData) {
+    docs = JSON.parse(storedData);
+  }
+} catch (e) {
+  console.warn('ローカルデータの読み込みに失敗しました。', e);
+}
+
 if (!Array.isArray(docs) || docs.length === 0) {
     docs = [{ id: Date.now(), title: '最初のドキュメント', content: '<p>ここに英文を入力してください。</p>' }];
 }
+
 let currentDocId = docs[0].id;
 const editor = document.getElementById('editor');
 
@@ -347,14 +357,26 @@ document.addEventListener('pointerdown', (e) => {
   }
 }, {capture:true});
 
-
 window.onload = () => {
   renderDocList();
-  loadDoc(currentDocId);
+  loadDoc(currentDocId); // 初期ロード
   editor.addEventListener('input', () => {
     if(!isRestoringHistory) saveHistory();
     updateNotesDisplay();
   });
+  
+  // 自動保存：一定間隔および画面遷移時に保存を試みる
+  const autoSave = () => {
+    try {
+      saveData();
+    } catch (e) {
+      console.warn('自動保存に失敗しました:', e);
+    }
+  };
+
+  setInterval(autoSave, 30000);
+  window.addEventListener('pagehide', autoSave);
+  window.addEventListener('beforeunload', autoSave);
 };
 
 const modal = {
@@ -384,9 +406,6 @@ const modal = {
       inputEl.placeholder = inputConfig.placeholder || '';
       inputEl.value = inputConfig.value || '';
       if(inputConfig.readonly) inputEl.setAttribute('readonly', 'readonly');
-      this.inputs.appendChild(inputEl);
-      
-      // Enterキーで主要ボタン（青色）を押した扱いに機能復活
       this.inputs.appendChild(inputEl);
       
       if (inputConfig.type !== 'textarea') {
@@ -448,10 +467,12 @@ function renderDocList() {
 }
 
 function loadDoc(id) {
-  if (currentDocId) {
+  // ★修正: 別のドキュメントから切り替える時のみ、現在のエディタの内容を保存する
+  if (currentDocId && currentDocId !== id) {
     const currentDoc = docs.find(d => d.id === currentDocId);
     if (currentDoc) currentDoc.content = editor.innerHTML;
   }
+  
   currentDocId = id;
   const doc = docs.find(d => d.id === id);
   if (doc) {
@@ -467,9 +488,11 @@ function loadDoc(id) {
 }
 
 function createNewDoc() {
-  const newDoc = { id: Date.now(), title: '新規ドキュメント', content: '<p><br></p>' };
+  // 重複しないようにランダム値を付与
+  const newId = Date.now() + Math.floor(Math.random() * 1000);
+  const newDoc = { id: newId, title: '新規ドキュメント', content: '<p><br></p>' };
   docs.push(newDoc);
-  loadDoc(newDoc.id);
+  loadDoc(newId);
 }
 
 function deleteDoc(id) {
@@ -493,7 +516,13 @@ function updateDocTitle(title) {
 function saveData() {
   const currentDoc = docs.find(d => d.id === currentDocId);
   if (currentDoc) currentDoc.content = editor.innerHTML;
-  localStorage.setItem('ese_docs_pro', JSON.stringify(docs));
+  
+  try {
+    localStorage.setItem('ese_docs_pro', JSON.stringify(docs));
+  } catch (e) {
+    console.error('保存エラー:', e);
+    showToast('エラー: 保存に失敗しました。データ容量が上限の可能性があります。');
+  }
 }
 
 // -----------------------------------------------------
@@ -523,18 +552,18 @@ function exportDataAsText() {
 }
 
 function showImportModal() {
+  // ★修正: 「すべて上書き」ボタンを削除
   modal.show('データの読み込み（貼り付け）', 
     '別の端末でコピーしたデータのテキストを、下の枠内に貼り付けてください。', 
     [
       { text: 'キャンセル', class: 'btn' },
-      { text: '追加する', class: 'btn', onClick: (val) => { processImport(val, 'add'); } },
-      { text: 'すべて上書き', class: 'danger', onClick: (val) => { processImport(val, 'overwrite'); } }
+      { text: 'データを追加する', class: 'primary', onClick: (val) => { processImport(val); } }
     ], 
     { type: 'textarea', placeholder: '[{"id":...}] データをここに貼り付け' }
   );
 }
 
-function processImport(jsonString, mode) {
+function processImport(jsonString) {
   if(!jsonString || jsonString.trim() === '') {
     showToast('テキストが入力されていません');
     return;
@@ -544,20 +573,16 @@ function processImport(jsonString, mode) {
     if (!Array.isArray(importedDocs) || importedDocs.length === 0 || !importedDocs[0].id || !importedDocs[0].content) {
       throw new Error("正しいデータ形式ではありません");
     }
-    if (mode === 'add') {
-      importedDocs.forEach(doc => {
-        doc.id = Date.now() + Math.floor(Math.random() * 1000);
-        docs.push(doc);
-      });
-      saveData();
-      renderDocList();
-      showToast('データを追加しました');
-    } else if (mode === 'overwrite') {
-      docs = importedDocs;
-      saveData();
-      loadDoc(docs[0].id);
-      showToast('データを上書きしました');
-    }
+    
+    // 現在のリストに追加する（IDが重複しないように再生成する）
+    importedDocs.forEach(doc => {
+      doc.id = Date.now() + Math.floor(Math.random() * 1000);
+      docs.push(doc);
+    });
+    saveData();
+    renderDocList();
+    showToast('データを追加しました');
+    
   } catch (error) {
     alert("データの読み込みに失敗しました。\n詳細: " + error.message);
   }
@@ -611,7 +636,6 @@ function showInputTextModal() {
     }
   ], { type: 'textarea', placeholder: 'ここに英文を貼り付け...' });
 }
-
 
 function getSelectionRange(allowWordFallback = false) {
   const sel = window.getSelection();
