@@ -64,16 +64,57 @@ body { margin: 0; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic Pr
 .doc-title-input:focus { border-color: #3b82f6; }
 
 /* Editor Area */
-.editor-wrapper { flex: 1; overflow-y: auto; padding: 30px; display: flex; flex-direction: column; gap: 20px; }
-.editor-paper { background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.1); padding: 40px; min-height: calc(100vh - 150px); display: flex; flex-direction: column; }
-.editor { outline: none; -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; touch-action: auto; cursor: text; font-size: 18px; line-height: 2.8; font-family: 'Times New Roman', Times, serif; color: #111; letter-spacing: 0.02em; flex: 1; }
+.editor-wrapper { flex: 1; overflow: auto; padding: 30px 10px; display: flex; flex-direction: column; gap: 20px; }
+/* ★ 改行ズレを完全に防ぐため、widthをパーセントやmax-widthではなく固定値(750px)にする */
+.editor-paper { background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.1); padding: 40px; min-height: calc(100vh - 150px); display: flex; flex-direction: column; width: 750px; min-width: 750px; flex-shrink: 0; margin: 0 auto; box-sizing: border-box; }
+.editor { outline: none; -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; touch-action: auto; cursor: text; font-size: 18px; line-height: 2.8; font-family: 'Times New Roman', Times, serif; color: #111; letter-spacing: 0.02em; flex: 1; position: relative; }
 .editor p { margin: 0 0 1.5em 0; }
 .mobile-selection-hint { display:none; }
 @media (pointer: coarse) { .mobile-selection-hint { display:block; margin-top:18px; font: 12px/1.5 -apple-system,BlinkMacSystemFont,sans-serif; color:#9ca3af; } }
 
 .print-legend { display: none; }
 
-/* Input Source Modal */
+/* Free Comment (ドラッグ可能なコメント) */
+.free-comment {
+    position: absolute; left: 0; top: 0; cursor: grab; z-index: 50; padding: 2px 5px;
+    font-family: 'Noto Sans JP', sans-serif; touch-action: none; line-height: 1.4; background: transparent;
+}
+.free-comment:active { cursor: grabbing; }
+
+/* ★ 旧来の削除ボタン（後方互換） */
+.free-comment > .fc-delete {
+    position: absolute; top: -8px; right: -8px; background: white; color: #ef4444; border: 1px solid #ef4444; border-radius: 50%;
+    width: 16px; height: 16px; font-size: 10px; line-height: 14px; text-align: center; cursor: pointer; display: none; font-family: Arial, sans-serif;
+}
+.free-comment:hover > .fc-delete { display: block; }
+@media (pointer: coarse) { .free-comment > .fc-delete { display: block; opacity: 0.7; } }
+
+/* ★ 新しいコメントコントロールパネル（拡大・縮小・削除） */
+.fc-controls {
+    position: absolute; top: -26px; right: 0; display: none; gap: 4px;
+}
+.free-comment:hover .fc-controls { display: flex; }
+@media (pointer: coarse) { .free-comment .fc-controls { display: flex; opacity: 0.8; } }
+
+.fc-btn {
+    background: white; color: #4b5563; border: 1px solid #d1d5db; border-radius: 4px;
+    width: 24px; height: 24px; font-size: 16px; line-height: 22px; text-align: center; cursor: pointer; font-family: Arial, sans-serif;
+    user-select: none; box-sizing: border-box; font-weight: bold; display: block; padding: 0;
+}
+.fc-btn:hover { background: #f3f4f6; }
+.fc-btn.fc-delete-new { color: #ef4444; border-color: #fca5a5; font-size: 14px; }
+.fc-btn.fc-delete-new:hover { background: #fef2f2; }
+
+/* サイズ変更用ハンドル */
+.fc-resize-handle {
+    position: absolute; bottom: -4px; right: -4px; width: 14px; height: 14px;
+    background: #3b82f6; border: 2px solid white; border-radius: 50%;
+    cursor: nwse-resize; display: none; box-shadow: 0 1px 3px rgba(0,0,0,0.3); z-index: 60;
+}
+.free-comment:hover .fc-resize-handle { display: block; }
+@media (pointer: coarse) { .free-comment .fc-resize-handle { display: block; opacity: 0.8; } }
+
+/* Token & Role Settings */
 .token { position: relative; display: inline; margin: 0 1px; }
 
 .role-S { background: var(--c-s-bg); border-bottom: 1px solid var(--c-s-border); }
@@ -111,7 +152,7 @@ body { margin: 0; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic Pr
 /* ルビのベースに position: relative を指定して、rt の基準にする */
 ruby { ruby-position: under; ruby-align: center; position: relative; }
 
-/* 語注（rt）を絶対位置(absolute)にして、文字間の余白を詰める */
+/* 語注（rt）を絶対位置(absolute)にして、文字の真下に配置＆ドラッグ可能に */
 rt { 
     font-family: 'Noto Sans JP', sans-serif; font-size: 10px; color: #e11d48; font-weight: normal; 
     line-height: 1; user-select: none;
@@ -121,7 +162,8 @@ rt {
 }
 rt:active { cursor: grabbing; }
 .has-note { cursor: help; position: relative; }
-.has-note::after { content: attr(data-num); position: absolute; top: -0.8em; right: -0.5em; font-size: 10px; color: #ef4444; font-weight: bold; font-family: Arial; }
+/* ★ 番号の位置をほんの少し右上へ移動 */
+.has-note::after { content: attr(data-num); position: absolute; top: -1.0em; right: -0.8em; font-size: 10px; color: #ef4444; font-weight: bold; font-family: Arial; }
 
 .notes-section { margin-top: 30px; border-top: 2px solid #e5e7eb; padding-top: 20px; }
 .notes-title { font-size: 16px; font-weight: bold; margin-bottom: 15px; color: #374151; }
@@ -147,6 +189,10 @@ rt:active { cursor: grabbing; }
 
 /* 印刷時の設定 */
 @media print {
+  @page {
+    margin-top: 15mm; /* 上部の空白 */
+    margin-bottom: 15mm; /* 下部の空白 */
+  }
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
@@ -154,11 +200,18 @@ rt:active { cursor: grabbing; }
   }
   
   .sidebar, .toolbar-container, .no-print, #floating-toolbar { display: none !important; }
-  body, .main-area, .editor-wrapper, .editor-paper { height: auto; overflow: visible; background: white; margin: 0; padding: 0; display: block; box-shadow: none; border: none; }
-  .editor-paper { padding: 15px; } 
+  body, .main-area, .editor-wrapper, .editor-paper { height: auto; overflow: visible !important; background: white; margin: 0; padding: 0; display: block; box-shadow: none; border: none; }
+  
+  /* 印刷時も画面と同じ幅を完全維持 */
+  .editor-wrapper { padding: 0 !important; }
+  .editor-paper { padding: 40px !important; margin: 0 auto; width: 750px !important; min-width: 750px !important; max-width: 750px !important; box-sizing: border-box !important; } 
+
   .print-legend { display: block; font-size: 12px; margin-bottom: 10px; text-align: right; }
   .notes-section { page-break-inside: avoid; margin-top: 20px; border-top: 1px solid #000; padding-top: 10px; }
   .note-item { border-bottom: none; padding: 2px 0; }
+
+  /* 印刷時はコメントの操作ボタンを隠す */
+  .fc-controls, .fc-delete-new, .fc-delete, .fc-resize-handle { display: none !important; }
 
   /* 生徒用PDF：色とラベルを消去 */
   body.print-student .role-label { display: none !important; }
@@ -167,6 +220,9 @@ rt:active { cursor: grabbing; }
   body.print-student .note-mean { visibility: hidden; }
   body.print-student .omission { display: none !important; }
   body.print-student rt { visibility: hidden; }
+  
+  /* 印刷時はコメントの操作ボタンを隠す */
+  .fc-delete, .fc-controls { display: none !important; }
 }
 
 /* Floating Toolbar */
@@ -208,6 +264,7 @@ rt:active { cursor: grabbing; }
         <button class="btn" onclick="execCmd('undo')" title="元に戻す (Ctrl+Z)">戻る</button>
         <button class="btn" onclick="execCmd('redo')" title="やり直し (Ctrl+Y)">進む</button>
         <button class="btn" onclick="showInputTextModal()">長文入力</button>
+        <button class="btn" onclick="showAddCommentModal()" style="font-weight: bold; color: #2563eb;">ｺﾒﾝﾄ追加</button>
       </div>
       <div class="toolbar-group">
         <button class="btn" onclick="applyRole('S')" style="color:var(--c-s-text); font-weight:bold;">S</button>
@@ -216,7 +273,7 @@ rt:active { cursor: grabbing; }
         <button class="btn" onclick="applyRole('C')" style="color:var(--c-c-text); font-weight:bold;">C</button>
         <button class="btn" onclick="applyRole('M')" style="color:var(--c-m-text); font-weight:bold;">M</button>
       </div>
-      <!-- メインツールバーにも S' V' O' C' M' を追加 -->
+      <!-- メインツールバー S' V' O' C' M' -->
       <div class="toolbar-group">
         <button class="btn" onclick="applyRole(`S'`)" style="color:var(--c-s-text); font-weight:bold;">S'</button>
         <button class="btn" onclick="applyRole(`V'`)" style="color:var(--c-v-text); font-weight:bold;">V'</button>
@@ -237,7 +294,9 @@ rt:active { cursor: grabbing; }
   <div class="editor-wrapper">
     <div class="editor-paper">
       <div class="print-legend">名詞句・節は [ ]、形容詞句・節は ( )、副詞句・節は &lt;&gt;、{}は並列関係を表す</div>
+      
       <div id="editor" class="editor" contenteditable="true" spellcheck="false"></div>
+      
       <div class="mobile-selection-hint">iPadでは文章を長押し→ハンドルを動かして選択できます。ツールバーを押しても選択範囲は保持されます。</div>
       <div class="notes-section" id="notes-section" style="display: none;">
         <div class="notes-title">Vocabulary & Notes</div>
@@ -279,6 +338,20 @@ rt:active { cursor: grabbing; }
     <button class="ft-btn role-c-btn" onpointerdown="event.preventDefault(); applyRole(`C&quot;`)" >C"</button>
     <button class="ft-btn role-m-btn" onpointerdown="event.preventDefault(); applyRole(`M&quot;`)" >M"</button>
   </div>
+  <!-- S''' などのボタン（内部のクォーテーションエラー対策でエスケープシーケンスを使用） -->
+  <div class="ft-row">
+    <button class="ft-btn role-s-btn" onpointerdown="event.preventDefault(); applyRole(`S\u0027\u0027\u0027`)" >S'''</button>
+    <button class="ft-btn role-v-btn" onpointerdown="event.preventDefault(); applyRole(`V\u0027\u0027\u0027`)" >V'''</button>
+    <button class="ft-btn role-o-btn" onpointerdown="event.preventDefault(); applyRole(`O\u0027\u0027\u0027`)" >O'''</button>
+    <button class="ft-btn role-c-btn" onpointerdown="event.preventDefault(); applyRole(`C\u0027\u0027\u0027`)" >C'''</button>
+    <button class="ft-btn role-m-btn" onpointerdown="event.preventDefault(); applyRole(`M\u0027\u0027\u0027`)" >M'''</button>
+    <div class="ft-divider"></div>
+    <button class="ft-btn role-s-btn" onpointerdown="event.preventDefault(); applyRole(`S\u0027\u0027\u0027\u0027`)" >S''''</button>
+    <button class="ft-btn role-v-btn" onpointerdown="event.preventDefault(); applyRole(`V\u0027\u0027\u0027\u0027`)" >V''''</button>
+    <button class="ft-btn role-o-btn" onpointerdown="event.preventDefault(); applyRole(`O\u0027\u0027\u0027\u0027`)" >O''''</button>
+    <button class="ft-btn role-c-btn" onpointerdown="event.preventDefault(); applyRole(`C\u0027\u0027\u0027\u0027`)" >C''''</button>
+    <button class="ft-btn role-m-btn" onpointerdown="event.preventDefault(); applyRole(`M\u0027\u0027\u0027\u0027`)" >M''''</button>
+  </div>
   <div class="ft-row">
     <button class="ft-btn role-s-btn" onpointerdown="event.preventDefault(); applyRole('S₁')">S<sub>1</sub></button>
     <button class="ft-btn role-v-btn" onpointerdown="event.preventDefault(); applyRole('V₁')">V<sub>1</sub></button>
@@ -289,6 +362,18 @@ rt:active { cursor: grabbing; }
     <button class="ft-btn role-v-btn" onpointerdown="event.preventDefault(); applyRole('V₂')">V<sub>2</sub></button>
     <button class="ft-btn role-o-btn" onpointerdown="event.preventDefault(); applyRole('O₂')">O<sub>2</sub></button>
     <button class="ft-btn role-c-btn" onpointerdown="event.preventDefault(); applyRole('C₂')">C<sub>2</sub></button>
+  </div>
+  <!-- S₃, V₃... S₄, V₄... のボタン -->
+  <div class="ft-row">
+    <button class="ft-btn role-s-btn" onpointerdown="event.preventDefault(); applyRole('S₃')">S<sub>3</sub></button>
+    <button class="ft-btn role-v-btn" onpointerdown="event.preventDefault(); applyRole('V₃')">V<sub>3</sub></button>
+    <button class="ft-btn role-o-btn" onpointerdown="event.preventDefault(); applyRole('O₃')">O<sub>3</sub></button>
+    <button class="ft-btn role-c-btn" onpointerdown="event.preventDefault(); applyRole('C₃')">C<sub>3</sub></button>
+    <div class="ft-divider"></div>
+    <button class="ft-btn role-s-btn" onpointerdown="event.preventDefault(); applyRole('S₄')">S<sub>4</sub></button>
+    <button class="ft-btn role-v-btn" onpointerdown="event.preventDefault(); applyRole('V₄')">V<sub>4</sub></button>
+    <button class="ft-btn role-o-btn" onpointerdown="event.preventDefault(); applyRole('O₄')">O<sub>4</sub></button>
+    <button class="ft-btn role-c-btn" onpointerdown="event.preventDefault(); applyRole('C₄')">C<sub>4</sub></button>
   </div>
   <div class="ft-row" style="margin-top: 2px; padding-top: 4px; border-top: 1px solid #374151;">
     <button class="ft-btn" onpointerdown="event.preventDefault(); wrapBracket('square')">[ ]</button>
@@ -307,8 +392,9 @@ rt:active { cursor: grabbing; }
     <span style="font-size:10px; color:#9ca3af; margin-right:4px;">直下ラベル:</span>
     <button class="ft-btn" onpointerdown="event.preventDefault(); insertLabelBelow('関代')" style="color:#93c5fd;">関代</button>
     <button class="ft-btn" onpointerdown="event.preventDefault(); insertLabelBelow('接')" style="color:#93c5fd;">接</button>
-    <button class="ft-btn" onpointerdown="event.preventDefault(); insertLabelBelow('疑')" style="color:#93c5fd;">疑</button>
+    <button class="ft-btn" onpointerdown="event.preventDefault(); insertLabelBelow('関疑')" style="color:#93c5fd;">関疑</button>
     <button class="ft-btn" onpointerdown="event.preventDefault(); insertLabelBelow('同格')" style="color:#93c5fd;">同格</button>
+    <button class="ft-btn" onpointerdown="event.preventDefault(); insertLabelBelow('不定')" style="color:#93c5fd;">不定</button>
   </div>
 </div>
 
@@ -530,7 +616,7 @@ function loadDoc(id) {
 }
 
 function createNewDoc() {
-  saveData();
+  saveData(); 
   
   const newId = Date.now() + Math.floor(Math.random() * 1000);
   const newDoc = { id: newId, title: '新規ドキュメント', content: '<p><br></p>' };
@@ -574,14 +660,22 @@ function saveData() {
 }
 
 // -----------------------------------------------------
-// ★ 6. データの入出力 (エクスポート/インポート)
+// ★ 6. データの入出力 (エクスポート/インポート) - 修正：現在開いている文章のみ対象
 // -----------------------------------------------------
 function exportDataAsText() {
   saveData();
-  const dataStr = JSON.stringify(docs);
+  
+  // 現在開いているドキュメントのみを抽出
+  const currentDoc = docs.find(d => d.id === currentDocId);
+  if (!currentDoc) {
+      showToast('エラー: 書き出すドキュメントが見つかりません');
+      return;
+  }
+  
+  const dataStr = JSON.stringify([currentDoc]); // 配列の形で1つだけ書き出す
   
   modal.show('データの書き出し（コピー）', 
-    '下の枠内にあるテキストをすべてコピーし、別の端末で「読み込む」から貼り付けてください。', 
+    '下の枠内にあるテキストをすべてコピーし、別の端末で「読み込む」から貼り付けてください。<br><b>※現在開いている文章（1件）のみが対象です。</b>', 
     [
       { text: '閉じる', class: 'btn' },
       { text: 'テキストをコピー', class: 'primary', onClick: () => {
@@ -591,7 +685,7 @@ function exportDataAsText() {
             document.execCommand('copy');
             showToast('クリップボードにコピーしました！');
           }
-          return true;
+          return true; // モーダルを閉じない
         }
       }
     ], 
@@ -621,6 +715,7 @@ function processImport(jsonString) {
       throw new Error("正しいデータ形式ではありません");
     }
     
+    // 現在のリストにインポートしたデータを追加（IDは新しく振る）
     importedDocs.forEach(doc => {
       doc.id = Date.now() + Math.floor(Math.random() * 1000);
       docs.push(doc);
@@ -685,6 +780,73 @@ function showInputTextModal() {
       }
     }
   ], { type: 'textarea', placeholder: 'ここに英文を貼り付け...' });
+}
+
+function showAddCommentModal() {
+  const bodyHtml = `
+    <div style="margin-bottom: 10px;">
+      <label style="margin-right: 15px; font-weight: bold;">色: 
+        <select id="fc-color" class="modal-input" style="width: auto; display: inline-block; margin-left: 5px;">
+          <option value="#111827">黒</option>
+          <option value="#ef4444">赤</option>
+          <option value="#3b82f6">青</option>
+        </select>
+      </label>
+      <label style="font-weight: bold;">太さ: 
+        <select id="fc-weight" class="modal-input" style="width: auto; display: inline-block; margin-left: 5px;">
+          <option value="normal">普通</option>
+          <option value="bold">太字</option>
+        </select>
+      </label>
+    </div>
+  `;
+  modal.show('自由に動かせるコメントを追加', bodyHtml, [
+    { text: 'キャンセル' },
+    { text: '追加', class: 'primary', onClick: (val) => {
+        if(val) {
+          const color = document.getElementById('fc-color').value;
+          const weight = document.getElementById('fc-weight').value;
+          addFreeComment(val, color, weight);
+        }
+      }
+    }
+  ], { type: 'textarea', placeholder: 'コメントを入力...' });
+}
+
+function addFreeComment(text, color, weight) {
+    const fc = document.createElement('div');
+    fc.className = 'free-comment';
+    fc.style.color = color;
+    fc.style.fontWeight = weight;
+    fc.style.fontSize = '14px'; // 初期サイズ
+    
+    const startX = 20; 
+    const startY = 20; 
+    
+    fc.style.transform = `translate(${startX}px, ${startY}px)`;
+    fc.setAttribute('data-dx', startX);
+    fc.setAttribute('data-dy', startY);
+    
+    const textSpan = document.createElement('span');
+    textSpan.innerHTML = text.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g, "<br>");
+    fc.appendChild(textSpan);
+    
+    const controls = document.createElement('div');
+    controls.className = 'fc-controls';
+    controls.contentEditable = "false";
+    controls.innerHTML = `
+        <div class="fc-btn fc-delete-new" title="削除">×</div>
+    `;
+    fc.appendChild(controls);
+    
+    const resizeHandle = document.createElement('div');
+    resizeHandle.className = 'fc-resize-handle';
+    resizeHandle.contentEditable = "false";
+    resizeHandle.title = "ドラッグしてサイズ変更";
+    fc.appendChild(resizeHandle);
+
+    editor.appendChild(fc);
+    saveHistory();
 }
 
 function getSelectionRange(allowWordFallback = false) {
@@ -776,7 +938,7 @@ function applyRole(role) {
   const baseRole = role.replace(/['"₁₂₃₄₅₆₇₈₉₀&quot;]/g, ""); 
   
   let levelClass = " role-level-1"; 
-  if (role.includes('"') || role.includes('&quot;')) levelClass = " role-level-3"; 
+  if (role.includes('"') || role.includes('&quot;') || role.includes("'''") || role.includes("''''")) levelClass = " role-level-3"; 
   else if (role.includes("'")) levelClass = " role-level-2"; 
   
   span.className = "token role-" + baseRole + levelClass;
@@ -966,11 +1128,21 @@ document.addEventListener("selectionchange", () => {
   clearTimeout(selectionTimeout);
   selectionTimeout = setTimeout(() => { showFloatingToolbar(); }, 250);
 });
+
 editor.addEventListener("click", (e) => {
+  // ★ コントロールボタンの処理（削除）
+  if (e.target.classList.contains('fc-delete') || e.target.classList.contains('fc-delete-new')) {
+    const fc = e.target.closest('.free-comment');
+    if (fc) { fc.remove(); saveHistory(); }
+    return;
+  }
+
+  // 以下、既存のツールバー呼び出し処理
   if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) return;
   const sel = window.getSelection();
   if(sel && sel.isCollapsed) showFloatingToolbar(e);
 });
+
 window.addEventListener('scroll', hideFloatingToolbar, true);
 
 function showFloatingToolbar(e = null) {
@@ -1024,25 +1196,58 @@ let dragStartY = 0;
 let initialDx = 0;
 let initialDy = 0;
 
+let isResizingComment = false;
+let resizeCommentTarget = null;
+let initialFontSize = 14;
+
 editor.addEventListener('pointerdown', (e) => {
   const target = e.target;
-  if (target.classList.contains('role-label') || target.tagName.toLowerCase() === 'rt') {
+  const freeComment = target.closest('.free-comment');
+  
+  // リサイズハンドルの場合はサイズ変更モードへ
+  if (target.classList.contains('fc-resize-handle')) {
+    e.preventDefault();
+    e.stopPropagation();
+    isResizingComment = true;
+    resizeCommentTarget = freeComment;
+    dragStartX = e.clientX;
+    initialFontSize = parseFloat(resizeCommentTarget.style.fontSize) || 14;
+    target.setPointerCapture(e.pointerId);
+    return;
+  }
+
+  // ★ コントロールボタン類の場合はドラッグ処理をしない
+  if (target.classList.contains('fc-btn') || target.classList.contains('fc-delete') || target.classList.contains('fc-delete-new')) {
+      return;
+  }
+
+  if (target.classList.contains('role-label') || target.tagName.toLowerCase() === 'rt' || freeComment) {
     e.preventDefault(); 
     e.stopPropagation();
     isDraggingLabel = true;
-    dragLabelTarget = target;
+    dragLabelTarget = freeComment || target;
     dragStartX = e.clientX;
     dragStartY = e.clientY;
     
     // 現在の移動量（カスタムデータ属性）を取得
-    initialDx = parseFloat(target.getAttribute('data-dx')) || 0;
-    initialDy = parseFloat(target.getAttribute('data-dy')) || 0;
+    initialDx = parseFloat(dragLabelTarget.getAttribute('data-dx')) || 0;
+    initialDy = parseFloat(dragLabelTarget.getAttribute('data-dy')) || 0;
     
-    target.setPointerCapture(e.pointerId);
+    dragLabelTarget.setPointerCapture(e.pointerId);
   }
 });
 
 editor.addEventListener('pointermove', (e) => {
+  if (isResizingComment && resizeCommentTarget) {
+    const dx = e.clientX - dragStartX;
+    // 右方向にドラッグで拡大、左で縮小（感度調整）
+    let newSize = initialFontSize + (dx / 3);
+    if (newSize < 8) newSize = 8;
+    if (newSize > 100) newSize = 100;
+    resizeCommentTarget.style.fontSize = newSize + 'px';
+    return;
+  }
+
   if (!isDraggingLabel || !dragLabelTarget) return;
   
   const dx = e.clientX - dragStartX;
@@ -1057,11 +1262,21 @@ editor.addEventListener('pointermove', (e) => {
     // role-labelもrtも中央揃えのためのtranslateX(-50%)がかかっているので、それを維持しつつ移動
     dragLabelTarget.style.transform = `translate(calc(-50% + ${newDx}px), ${newDy}px)`;
   } else {
+    // フリーコメント等の場合は単純移動
     dragLabelTarget.style.transform = `translate(${newDx}px, ${newDy}px)`;
   }
 });
 
 editor.addEventListener('pointerup', (e) => {
+  if (isResizingComment && resizeCommentTarget) {
+    const handle = resizeCommentTarget.querySelector('.fc-resize-handle');
+    if (handle) handle.releasePointerCapture(e.pointerId);
+    isResizingComment = false;
+    resizeCommentTarget = null;
+    saveHistory();
+    return;
+  }
+
   if (isDraggingLabel && dragLabelTarget) {
     dragLabelTarget.releasePointerCapture(e.pointerId);
     isDraggingLabel = false;
