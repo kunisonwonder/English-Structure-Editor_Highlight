@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>English Structure Editor Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-color: #f3f4f6;
+  --sidebar-bg: #1f2937;
+  --sidebar-text: #e5e7eb;
+  --panel-bg: #ffffff;
+  --border-color: #e5e7eb;
+  --text-main: #111827;
+  --text-muted: #6b7280;
+  
+  --c-s-bg: #ffe4e6; --c-s-border: #e11d48; --c-s-text: #9f1239;
+  --c-v-bg: #dbeafe; --c-v-border: #2563eb; --c-v-text: #1e40af;
+  --c-o-bg: #dcfce7; --c-o-border: #16a34a; --c-o-text: #166534;
+  --c-c-bg: #f3e8ff; --c-c-border: #9333ea; --c-c-text: #6b21a8;
+  --c-m-bg: #ffedd5; --c-m-border: #ea580c; --c-m-text: #9a3412;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif; background: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
+
+/* Sidebar */
+.sidebar { width: 260px; background: var(--sidebar-bg); color: var(--sidebar-text); display: flex; flex-direction: column; flex-shrink: 0; }
+.sidebar-header { padding: 20px; border-bottom: 1px solid #374151; }
+.sidebar-header h1 { margin: 0; font-size: 18px; font-weight: bold; color: white; line-height: 1.3; }
+.sidebar-header p { margin: 5px 0 0; font-size: 11px; color: #9ca3af; }
+.doc-list { flex: 1; overflow-y: auto; padding: 10px; }
+.doc-item { padding: 10px 12px; margin-bottom: 4px; border-radius: 6px; cursor: pointer; font-size: 14px; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s; }
+.doc-item:hover { background: #374151; }
+.doc-item.active { background: #4b5563; color: white; font-weight: bold; }
+.doc-item-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+.doc-item-delete { color: #fca5a5; font-size: 16px; width: 24px; text-align: center; border-radius: 4px; opacity: 0.5; }
+.doc-item-delete:hover { opacity: 1; background: rgba(255,0,0,0.2); }
+.sidebar-footer { padding: 15px; border-top: 1px solid #374151; display: flex; flex-direction: column; gap: 8px; }
+.btn-new-doc { width: 100%; padding: 10px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.btn-new-doc:hover { background: #2563eb; }
+.btn-secondary { width: 100%; padding: 8px; background: transparent; color: #e5e7eb; border: 1px solid #4b5563; border-radius: 6px; cursor: pointer; font-size: 12px; text-align: center; margin-top: 8px; }
+.btn-secondary:hover { background: #374151; border-color: #9ca3af; }
+
+/* Main Content Area */
+.main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+
+/* Toolbar */
+.toolbar-container { background: var(--panel-bg); border-bottom: 1px solid var(--border-color); padding: 12px 20px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); z-index: 10; flex-shrink: 0; }
+.toolbar-row { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; }
+.toolbar-group { display: flex; gap: 4px; border-right: 1px solid #e5e7eb; padding-right: 15px; align-items: center; }
+.toolbar-group:last-child { border-right: none; }
+.btn { border: 1px solid #d1d5db; background: white; border-radius: 6px; padding: 6px 10px; cursor: pointer; font-size: 13px; color: #374151; display: inline-flex; align-items: center; justify-content: center; transition: all 0.1s; }
+.btn:hover { background: #f3f4f6; border-color: #9ca3af; }
+.btn:active { transform: scale(0.97); }
+.btn.primary { background: #111827; color: white; border-color: #111827; }
+.btn.primary:hover { background: #374151; }
+.btn.danger { color: #ef4444; border-color: #fca5a5; }
+.btn.danger:hover { background: #fef2f2; }
+.btn.print-s { background: #ecfdf5; color: #059669; border-color: #a7f3d0; }
+.btn.print-a { background: #fffbeb; color: #d97706; border-color: #fde68a; }
+.doc-title-input { font-size: 20px; font-weight: bold; border: none; outline: none; background: transparent; color: var(--text-main); width: 100%; border-bottom: 2px solid transparent; padding: 4px 0; transition: border-color 0.2s; }
+.doc-title-input:focus { border-color: #3b82f6; }
+
+/* Editor Area */
+.editor-wrapper { flex: 1; overflow: auto; padding: 30px 10px; display: flex; flex-direction: column; gap: 20px; }
+
+/* ★ ズレ防止：画面上のエディタサイズを「A4用紙そのもの」にする */
+.editor-paper { 
+    background: white; 
+    border-radius: 8px; 
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.1); 
+    padding: 25mm 20mm; /* A4用紙の余白を再現 (上下25mm, 左右20mm) */
+    min-height: 297mm;  /* A4用紙の高さ */
+    display: flex; 
+    flex-direction: column; 
+    width: 210mm;       /* A4用紙の幅に固定 */
+    min-width: 210mm; 
+    max-width: 210mm; 
+    flex-shrink: 0; 
+    margin: 0 auto; 
+    box-sizing: border-box; 
+}
+.editor { outline: none; -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; touch-action: auto; cursor: text; font-size: 18px; line-height: 2.8; font-family: 'Times New Roman', Times, serif; color: #111; letter-spacing: 0.02em; flex: 1; position: relative; }
+.editor p { margin: 0 0 1.5em 0; }
+.mobile-selection-hint { display:none; }
+@media (pointer: coarse) { .mobile-selection-hint { display:block; margin-top:18px; font: 12px/1.5 -apple-system,BlinkMacSystemFont,sans-serif; color:#9ca3af; } }
+
+.print-legend { display: none; }
+
+/* 改ページ線 */
+.page-break-mark {
+  border: none;
+  background-color: var(--bg-color);
+  height: 60px;
+  margin: 60px -40px;
+  width: calc(100% + 80px);
+  position: relative;
+  display: block;
+  user-select: none;
+  border-top: 1px solid #d1d5db;
+  border-bottom: 1px solid #d1d5db;
+}
+.page-break-mark::after {
+  content: "--- 新しいページ ---";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: transparent;
+  color: #9ca3af;
+  font-size: 13px;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: bold;
+}
+
+/* Free Comment (ドラッグ可能なコメント) */
+.free-comment {
+    position: absolute; left: 0; top: 0; cursor: grab; z-index: 50; padding: 4px;
+    font-family: 'Noto Sans JP', sans-serif; touch-action: none; line-height: 1.4; background: transparent;
+    display: inline-block;
+}
+.free-comment:active { cursor: grabbing; }
+
+/* コントロール群（削除・サイズ変更） */
+.fc-controls {
+    position: absolute; top: -10px; right: -10px; display: none; gap: 4px; z-index: 51;
+}
+.free-comment:hover .fc-controls, .free-comment:hover .fc-resize-handle { display: flex; }
+@media (pointer: coarse) { 
+    .fc-controls { display: flex; opacity: 0.8; }
+    .fc-resize-handle { display: block; opacity: 0.8; }
+}
+
+.fc-btn {
+    background: white; border-radius: 50%; width: 18px; height: 18px;
+    font-size: 12px; line-height: 16px; text-align: center; cursor: pointer;
+    font-family: Arial, sans-serif; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    user-select: none;
+}
+.fc-delete-new { color: #ef4444; border: 1px solid #ef4444; }
+
+/* リサイズ用の青い丸（右下） */
+.fc-resize-handle {
+    position: absolute; right: -5px; bottom: -5px; width: 14px; height: 14px;
+    background-color: #3b82f6; border-radius: 50%; cursor: ew-resize;
+    border: 2px solid white; box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    z-index: 52; display: none; user-select: none; touch-action: none;
+}
+
+/* Input Source Modal */
+.token { position: relative; display: inline; margin: 0 1px; }
+
+.role-S { background: var(--c-s-bg); border-bottom: 1px solid var(--c-s-border); }
+.role-V { background: var(--c-v-bg); border-bottom: 1px solid var(--c-v-border); }
+.role-O { background: var(--c-o-bg); border-bottom: 1px solid var(--c-o-border); }
+.role-C { background: var(--c-c-bg); border-bottom: 1px solid var(--c-c-border); }
+.role-M { background: var(--c-m-bg); border-bottom: 1px solid var(--c-m-border); }
+
+.role-level-1 { padding-bottom: 5px; }
+.role-level-2 { padding-bottom: 3px; }
+.role-level-3 { padding-bottom: 1px; }
+
+/* SVOCラベルをドラッグ＆ドロップ可能に */
+.role-label { 
+    font-size: 11px; font-weight: bold; position: absolute; bottom: -1.3em; left: 50%; 
+    transform: translateX(-50%); line-height: 1; font-family: Arial, sans-serif; 
+    cursor: grab; user-select: none; z-index: 10; touch-action: none;
+}
+.role-label:active { cursor: grabbing; }
+
+/* 直下(>)の.role-labelにのみ色を適用し、入れ子時の色かぶりを防ぐ */
+.role-S > .role-label { color: var(--c-s-text); }
+.role-V > .role-label { color: var(--c-v-text); }
+.role-O > .role-label { color: var(--c-o-text); }
+.role-C > .role-label { color: var(--c-c-text); }
+.role-M > .role-label { color: var(--c-m-text); }
+
+.bracket { display: inline; }
+.b-handle { cursor: ew-resize; user-select: none; font-weight: bold; color: #4b5563; font-size: 1.1em; padding: 0 2px; display: inline-block; transition: transform 0.1s; font-family: Arial, sans-serif; }
+.b-handle:hover { color: #ea580c; transform: scale(1.3); }
+.b-content { display: inline; }
+
+.omission { color: rgba(225, 29, 72, 0.7); font-weight: normal; margin: 0 2px; font-size: 0.9em; cursor: pointer; display: inline-block; }
+
+/* ルビのベースに position: relative を指定して、rt の基準にする */
+ruby { ruby-position: under; ruby-align: center; position: relative; }
+
+/* 語注（rt）を絶対位置(absolute)にして、文字の真下に配置＆ドラッグ可能に */
+rt { 
+    font-family: 'Noto Sans JP', sans-serif; font-size: 10px; color: #e11d48; font-weight: normal; 
+    line-height: 1; user-select: none;
+    position: absolute; left: 50%; top: 1.4em; transform: translateX(-50%);
+    white-space: nowrap; /* テキストの折り返しを防ぐ */
+    cursor: grab; z-index: 10; touch-action: none;
+}
+rt:active { cursor: grabbing; }
+.has-note { cursor: help; position: relative; }
+.has-note::after { content: attr(data-num); position: absolute; top: -1.0em; right: -0.8em; font-size: 10px; color: #ef4444; font-weight: bold; font-family: Arial; }
+
+.notes-section { margin-top: 30px; border-top: 2px solid #e5e7eb; padding-top: 20px; }
+.notes-title { font-size: 16px; font-weight: bold; margin-bottom: 15px; color: #374151; }
+.notes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px 20px; }
+.note-item { display: flex; gap: 8px; font-size: 14px; padding: 6px; border-bottom: 1px solid #f3f4f6; }
+.note-num { color: #ef4444; font-weight: bold; width: 20px; }
+.note-word { font-weight: bold; font-family: 'Times New Roman', Times, serif; color: #111827; }
+.note-mean { color: #4b5563; flex: 1; }
+
+/* Modals */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+.modal-overlay.active { opacity: 1; pointer-events: auto; }
+.modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); transform: translateY(20px); transition: transform 0.2s; }
+.modal-overlay.active .modal-content { transform: translateY(0); }
+.modal-title { margin: 0 0 15px; font-size: 18px; color: #111; }
+.modal-body { margin-bottom: 20px; font-size: 14px; color: #4b5563; line-height: 1.5; }
+.modal-input { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; outline: none; margin-top: 10px; font-family: monospace; }
+.modal-input:focus { border-color: #3b82f6; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;}
+
+.toast { position: fixed; bottom: 20px; right: 20px; background: #1f2937; color: white; padding: 10px 20px; border-radius: 8px; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); opacity: 0; transform: translateY(10px); transition: all 0.3s; z-index: 999; }
+.toast.show { opacity: 1; transform: translateY(0); }
+
+/* 印刷時の設定 */
+@media print {
+  @page {
+    size: A4;
+    margin: 0; /* ★ ブラウザ側の余白をなくし、editor-paperのpaddingを使用する */
+  }
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+  
+  .sidebar, .toolbar-container, .no-print, #floating-toolbar { display: none !important; }
+  body, .main-area, .editor-wrapper, .editor-paper { height: auto; overflow: visible !important; background: white; margin: 0; padding: 0; display: block; box-shadow: none; border: none; }
+  
+  .editor-wrapper { padding: 0 !important; }
+  
+  /* ★ 印刷時も画面と全く同じ寸法(210mm)を強制し、改行位置のズレを防ぐ */
+  .editor-paper { 
+    padding: 25mm 20mm !important; 
+    margin: 0 auto !important; 
+    width: 210mm !important; 
+    min-width: 210mm !important; 
+    max-width: 210mm !important; 
+    box-sizing: border-box !important; 
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    min-height: auto !important;
+  } 
+
+  .print-legend { display: block; font-size: 12px; margin-bottom: 15px; text-align: right; }
+  
+  .notes-section { page-break-before: always; break-before: page; margin-top: 20px; border-top: 1px solid #000; padding-top: 10px; }
+  
+  .notes-title { page-break-after: avoid; break-after: avoid; margin-bottom: 15px; }
+  
+  .notes-grid { display: flex !important; flex-wrap: wrap !important; gap: 0 !important; }
+  .note-item { width: 50% !important; box-sizing: border-box; padding-right: 15px !important; page-break-inside: avoid; break-inside: avoid; border-bottom: none; padding-top: 4px !important; padding-bottom: 4px !important; }
+
+  .page-break-mark { page-break-before: always !important; break-before: page !important; border: none !important; margin: 0 !important; padding: 0 !important; height: 0 !important; background: transparent !important; }
+  .page-break-mark::after { display: none !important; }
+
+  .fc-controls, .fc-delete-new, .fc-delete, .fc-resize-handle { display: none !important; }
+
+  body.print-student .role-label { display: none !important; }
+  body.print-student .token { background: transparent !important; border-bottom: none !important; }
+  body.print-student .b-handle { display: inline-block !important; }
+  body.print-student .note-mean { visibility: hidden; }
+  body.print-student .omission { display: none !important; }
+  body.print-student rt { visibility: hidden; }
+  
+  body.print-no-bg .token { background: transparent !important; }
+}
+
+/* Floating Toolbar */
+.floating-toolbar { position: fixed; background: var(--sidebar-bg); border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.3), 0 2px 10px rgba(0,0,0,0.2); padding: 8px; display: flex; flex-direction: column; gap: 6px; z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); transform: translateY(10px) scale(0.95); }
+.floating-toolbar.active { opacity: 1; pointer-events: auto; transform: translateY(0) scale(1); }
+.ft-row { display: flex; gap: 2px; align-items: center; justify-content: center; }
+.ft-btn { background: transparent; color: #e5e7eb; border: none; border-radius: 4px; padding: 6px 8px; font-size: 14px; font-weight: bold; cursor: pointer; transition: background 0.1s; font-family: inherit; }
+.ft-btn:active { transform: scale(0.9); }
+.ft-divider { width: 1px; height: 20px; background: #4b5563; margin: 0 4px; }
+.role-s-btn { color: #fca5a5; } .role-v-btn { color: #93c5fd; } .role-o-btn { color: #86efac; } .role-c-btn { color: #d8b4fe; } .role-m-btn { color: #fdba74; }
+.ft-btn sub { font-size: 10px; bottom: -0.2em; }
+@media (hover: hover) { .ft-btn:hover { background: #374151; } }
+@media (pointer: coarse) { .floating-toolbar { display: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="sidebar-header">
+    <h1>English Structure Editor</h1>
+    <p>Pro Version - テキスト同期版</p>
+  </div>
+  <div class="doc-list" id="doc-list"></div>
+  <div class="sidebar-footer">
+    <button class="btn-new-doc" onclick="createNewDoc()">新規作成</button>
+    <div style="height: 1px; background: #4b5563; margin: 12px 0 4px 0;"></div>
+    <button class="btn-secondary" onclick="exportDataAsText()">データをコピー (書出)</button>
+    <button class="btn-secondary" onclick="showImportModal()">データを貼付 (読込)</button>
+  </div>
+</div>
+
+<div class="main-area">
+  <div class="toolbar-container">
+    <div class="toolbar-row">
+      <input type="text" id="doc-title" class="doc-title-input" placeholder="無題のドキュメント" onchange="updateDocTitle(this.value)">
+    </div>
+    <div class="toolbar-row">
+      <div class="toolbar-group">
+        <button class="btn" onclick="execCmd('undo')" title="元に戻す (Ctrl+Z)">戻る</button>
+        <button class="btn" onclick="execCmd('redo')" title="やり直し (Ctrl+Y)">進む</button>
+        <button class="btn" onclick="showInputTextModal()">長文入力</button>
+        <button class="btn" onclick="showAddCommentModal()" style="font-weight: bold; color: #2563eb;">ｺﾒﾝﾄ追加</button>
+        <button class="btn" onclick="insertPageBreak()" title="カーソル位置で改ページ">改ページ</button>
+      </div>
+      <div class="toolbar-group">
+        <button class="btn" onclick="applyRole('S')" style="color:var(--c-s-text); font-weight:bold;">S</button>
+        <button class="btn" onclick="applyRole('V')" style="color:var(--c-v-text); font-weight:bold;">V</button>
+        <button class="btn" onclick="applyRole('O')" style="color:var(--c-o-text); font-weight:bold;">O</button>
+        <button class="btn" onclick="applyRole('C')" style="color:var(--c-c-text); font-weight:bold;">C</button>
+        <button class="btn" onclick="applyRole('M')" style="color:var(--c-m-text); font-weight:bold;">M</button>
+      </div>
+      <div class="toolbar-group">
+        <button class="btn" onclick="applyRole(`S'`)" style="color:var(--c-s-text); font-weight:bold;">S'</button>
+        <button class="btn" onclick="applyRole(`V'`)" style="color:var(--c-v-text); font-weight:bold;">V'</button>
+        <button class="btn" onclick="applyRole(`O'`)" style="color:var(--c-o-text); font-weight:bold;">O'</button>
+        <button class="btn" onclick="applyRole(`C'`)" style="color:var(--c-c-text); font-weight:bold;">C'</button>
+        <button class="btn" onclick="applyRole(`M'`)" style="color:var(--c-m-text); font-weight:bold;">M'</button>
+      </div>
+      <div class="toolbar-group">
+        <button class="btn danger" onclick="removeFormatting()" title="選択範囲の装飾を解除">装飾解除</button>
+      </div>
+      <div class="toolbar-group" style="margin-left: auto;">
+        <button class="btn print-s" onclick="printDocument('student')">生徒用PDF</button>
+        <button class="btn print-a" onclick="printDocument('answer-no-bg')">解答用(背景無)</button>
+        <button class="btn print-a" onclick="printDocument('answer')">解答用(背景有)</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="editor-wrapper">
+    <div class="editor-paper">
+      <div class="print-legend">名詞句・節は [ ]、形容詞句・節は ( )、副詞句・節は <>、{}は並列関係を表す</div>
+      
+      <div id="editor" class="editor" contenteditable="true" spellcheck="false"></div>
+      
+      <div class="mobile-selection-hint">iPadでは文章を長押し→ハンドルを動かして選択できます。ツールバーを押しても選択範囲は保持されます。</div>
+      <div class="notes-section" id="notes-section" style="display: none;">
+        <div class="notes-title">Vocabulary & Notes</div>
+        <div class="notes-grid" id="notes-grid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="custom-modal" class="modal-overlay">
+  <div class="modal-content">
+    <h3 id="modal-title" class="modal-title">Title</h3>
+    <div id="modal-body" class="modal-body">Message</div>
+    <div id="modal-inputs-container"></div>
+    <div class="modal-actions" id="modal-actions"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast">Status updated</div>
+
+<div id="floating-toolbar" class="floating-toolbar">
+  <div class="ft-row">
+    <button class="ft-btn role-s-btn" onpointerdown="event.preventDefault(); applyRole('S')" style="font-size:16px;">S</button>
+    <button class="ft-btn role-v-btn" onpointerdown="event.preventDefault(); applyRole('V')" style="font-size:16px;">V</button>
+    <button class="ft-btn role-o-btn" onpointerdown="event.preventDefault(); applyRole('O')" style="font-size:16px;">O</button>
+    <button class="ft-btn role-c-btn" onpointerdown="event.preventDefault(); applyRole('C')" style="font-size:16px;">C</button>
+    <button class="ft-btn role-m-btn" onpointerdown="event.preventDefault(); applyRole('M')" style="font-size:16px;">M</button>
+  </div>
+  <div class="ft-row">
+    <button class="ft-btn role-s-btn" onpointerdown="event.preventDefault(); applyRole(`S'`)" >S'</button>
+    <button class="ft-btn role-v-btn" onpointerdown="event.preventDefault(); applyRole(`V'`)" >V'</button>
+    <button class="ft-btn role-o-btn" onpointerdown="event.preventDefault(); applyRole(`O'`)" >O'</button>
+    <button class="ft-btn role-c-btn" onpointerdown="event.preventDefault(); applyRole(`C'`)" >C'</button>
+    <button class="ft-btn role-m-btn" onpointerdown="event.preventDefault(); applyRole(`M'`)" >M'</button>
+    <div class="ft-divider"></div>
+    <button class="ft-btn role-s-btn" onpointerdown="event.preventDefault(); applyRole(`S"`)" >S"</button>
+    <button class="ft-btn role-v-btn" onpointerdown="event.preventDefault(); applyRole(`V"`)" >V"</button>
+    <button class="ft-btn role-o-btn" onpointerdown="event.preventDefault(); applyRole(`O"`)" >O"</button>
+    <button class="ft-btn role-c-btn" onpointerdown="event.preventDefault(); applyRole(`C"`)" >C"</button>
+    <button class="ft-btn role-m-btn" onpointerdown="event.preventDefault(); applyRole(`M"`)" >M"</button>
+  </div>
+  <div class="ft-row">
+    <button class="ft-btn role-s-btn" onpointerdown="event.preventDefault(); applyRole(`S\u0027\u0027\u0027`)" >S'''</button>
+    <button class="ft-btn role-v-btn" onpointerdown="event.preventDefault(); applyRole(`V\u0027\u0027\u0027`)" >V'''</button>
+    <button class="ft-btn role-o-btn" onpointerdown="event.preventDefault(); applyRole(`O\u0027\u0027\u0027`)" >O'''</button>
+    <button class="ft-btn role-c-btn" onpointerdown="event.preventDefault(); applyRole(`C\u0027\u0027\u0027`)" >C'''</button>
+    <button class="ft-btn role-m-btn" onpointerdown="event.preventDefault(); applyRole(`M\u0027\u0027\u0027`)" >M'''</button>
+    <div class="ft-divider"></div>
+    <button class="ft-btn role-s-btn" onpointerdown="event.preventDefault(); applyRole(`S\u0027\u0027\u0027\u0027`)" >S''''</button>
+    <button class="ft-btn role-v-btn" onpointerdown="event.preventDefault(); applyRole(`V\u0027\u0027\u0027\u0027`)" >V''''</button>
+    <button class="ft-btn role-o-btn" onpointerdown="event.preventDefault(); applyRole(`O\u0027\u0027\u0027\u0027`)" >O''''</button>
+    <button class="ft-btn role-c-btn" onpointerdown="event.preventDefault(); applyRole(`C\u0027\u0027\u0027\u0027`)" >C''''</button>
+    <button class="ft-btn role-m-btn" onpointerdown="event.preventDefault(); applyRole(`M\u0027\u0027\u0027\u0027`)" >M''''</button>
+  </div>
+  <div class="ft-row">
+    <button class="ft-btn role-s-btn" onpointerdown="event.preventDefault(); applyRole('S₁')">S<sub>1</sub></button>
+    <button class="ft-btn role-v-btn" onpointerdown="event.preventDefault(); applyRole('V₁')">V<sub>1</sub></button>
+    <button class="ft-btn role-o-btn" onpointerdown="event.preventDefault(); applyRole('O₁')">O<sub>1</sub></button>
+    <button class="ft-btn role-c-btn" onpointerdown="event.preventDefault(); applyRole('C₁')">C<sub>1</sub></button>
+    <div class="ft-divider"></div>
+    <button class="ft-btn role-s-btn" onpointerdown="event.preventDefault(); applyRole('S₂')">S<sub>2</sub></button>
+    <button class="ft-btn role-v-btn" onpointerdown="event.preventDefault(); applyRole('V₂')">V<sub>2</sub></button>
+    <button class="ft-btn role-o-btn" onpointerdown="event.preventDefault(); applyRole('O₂')">O<sub>2</sub></button>
+    <button class="ft-btn role-c-btn" onpointerdown="event.preventDefault(); applyRole('C₂')">C<sub>2</sub></button>
+  </div>
+  <div class="ft-row">
+    <button class="ft-btn role-s-btn" onpointerdown="event.preventDefault(); applyRole('S₃')">S<sub>3</sub></button>
+    <button class="ft-btn role-v-btn" onpointerdown="event.preventDefault(); applyRole('V₃')">V<sub>3</sub></button>
+    <button class="ft-btn role-o-btn" onpointerdown="event.preventDefault(); applyRole('O₃')">O<sub>3</sub></button>
+    <button class="ft-btn role-c-btn" onpointerdown="event.preventDefault(); applyRole('C₃')">C<sub>3</sub></button>
+    <div class="ft-divider"></div>
+    <button class="ft-btn role-s-btn" onpointerdown="event.preventDefault(); applyRole('S₄')">S<sub>4</sub></button>
+    <button class="ft-btn role-v-btn" onpointerdown="event.preventDefault(); applyRole('V₄')">V<sub>4</sub></button>
+    <button class="ft-btn role-o-btn" onpointerdown="event.preventDefault(); applyRole('O₄')">O<sub>4</sub></button>
+    <button class="ft-btn role-c-btn" onpointerdown="event.preventDefault(); applyRole('C₄')">C<sub>4</sub></button>
+  </div>
+  <div class="ft-row" style="margin-top: 2px; padding-top: 4px; border-top: 1px solid #374151;">
+    <button class="ft-btn" onpointerdown="event.preventDefault(); wrapBracket('square')">[ ]</button>
+    <button class="ft-btn" onpointerdown="event.preventDefault(); wrapBracket('round')">( )</button>
+    <button class="ft-btn" onpointerdown="event.preventDefault(); wrapBracket('angle')">〈 〉</button>
+    <button class="ft-btn" onpointerdown="event.preventDefault(); wrapBracket('curly')">{ }</button>
+    <div class="ft-divider"></div>
+    <button class="ft-btn" onpointerdown="event.preventDefault(); insertOmission('▼')" style="color: #fca5a5;">▼</button>
+    <button class="ft-btn" onpointerdown="event.preventDefault(); insertOmission('▼関代')" style="color: #fca5a5;">▼関代</button>
+    <button class="ft-btn" onpointerdown="event.preventDefault(); insertOmission('▼that')" style="color: #fca5a5;">▼that</button>
+    <div class="ft-divider"></div>
+    <button class="ft-btn" onpointerdown="event.preventDefault(); promptAddNote()" style="color: #fff; background:#2563eb;">語注</button>
+    <button class="ft-btn" onpointerdown="event.preventDefault(); removeFormatting()" style="color: #ef4444;" title="装飾解除">✖</button>
+  </div>
+  <div class="ft-row" style="margin-top: 2px;">
+    <span style="font-size:10px; color:#9ca3af; margin-right:4px;">直下ラベル:</span>
+    <button class="ft-btn" onpointerdown="event.preventDefault(); insertLabelBelow('関代')" style="color:#93c5fd;">関代</button>
+    <button class="ft-btn" onpointerdown="event.preventDefault(); insertLabelBelow('接')" style="color:#93c5fd;">接</button>
+    <button class="ft-btn" onpointerdown="event.preventDefault(); insertLabelBelow('関疑')" style="color:#93c5fd;">関疑</button>
+    <button class="ft-btn" onpointerdown="event.preventDefault(); insertLabelBelow('同格')" style="color:#93c5fd;">同格</button>
+    <button class="ft-btn" onpointerdown="event.preventDefault(); insertLabelBelow('不定')" style="color:#93c5fd;">不定</button>
+  </div>
+</div>
+
+<script>
+// -----------------------------------------------------
+// ★ 1. 初期化とデータ読み込み
+// -----------------------------------------------------
+let docs = [];
+
+try {
+  const storedData = localStorage.getItem('ese_docs_pro');
+  if (storedData) {
+    docs = JSON.parse(storedData);
+  }
+} catch (e) {
+  console.warn('ローカルデータの読み込みに失敗しました。', e);
+}
+
+if (!Array.isArray(docs) || docs.length === 0) {
+  docs = [{ id: Date.now(), title: '最初のドキュメント', content: '<p>ここに英文を入力してください。</p>' }];
+}
+
+let currentDocId = docs[0].id;
+const editor = document.getElementById('editor');
+
+let historyStack = [];
+let historyIndex = -1;
+let isRestoringHistory = false;
+
+// -----------------------------------------------------
+// ★ 2. 選択範囲（iPad/Safari対応）の処理
+// -----------------------------------------------------
+let savedSelectionRange = null;
+let selectionSaveTimer = null;
+let editorSelectionActive = false;
+
+function saveCurrentSelection() {
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0) return;
+  const r = sel.getRangeAt(0);
+  if (!editor.contains(r.commonAncestorContainer)) return;
+  if (!sel.isCollapsed) {
+    savedSelectionRange = r.cloneRange();
+  }
+}
+
+function restoreSavedSelection() {
+  if (!savedSelectionRange) return false;
+  try {
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(savedSelectionRange.cloneRange());
+    return true;
+  } catch (e) {
+    savedSelectionRange = null;
+    return false;
+  }
+}
+
+document.addEventListener('selectionchange', () => {
+  clearTimeout(selectionSaveTimer);
+  selectionSaveTimer = setTimeout(() => {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount && editor.contains(sel.anchorNode) && !sel.isCollapsed) {
+      editorSelectionActive = true;
+      saveCurrentSelection();
+    }
+  }, 0);
+});
+
+document.addEventListener('pointerdown', (e) => {
+  if (e.target.closest('button, input, textarea, select')) {
+    if (window.getSelection()?.rangeCount && !window.getSelection().isCollapsed) {
+      saveCurrentSelection();
+    }
+  }
+}, {capture:true});
+
+// -----------------------------------------------------
+// ★ 3. メインフロー（起動時、自動保存）
+// -----------------------------------------------------
+window.onload = () => {
+  renderDocList();
+  loadDoc(currentDocId);
+
+  editor.addEventListener('input', () => {
+    if(!isRestoringHistory) saveHistory();
+    updateNotesDisplay();
+  });
+
+  const autoSave = () => {
+    try {
+      saveData();
+    } catch (e) {
+      console.warn('自動保存に失敗しました:', e);
+    }
+  };
+
+  setInterval(autoSave, 15000);
+  window.addEventListener('pagehide', autoSave);
+  window.addEventListener('beforeunload', autoSave);
+  autoSave();
+};
+
+// -----------------------------------------------------
+// ★ 4. UIコンポーネント (Modal, Toast)
+// -----------------------------------------------------
+const modal = {
+  overlay: document.getElementById('custom-modal'),
+  title: document.getElementById('modal-title'),
+  body: document.getElementById('modal-body'),
+  inputs: document.getElementById('modal-inputs-container'),
+  actions: document.getElementById('modal-actions'),
+  
+  show(title, body, buttons, inputConfig = null) {
+    this.title.textContent = title;
+    this.body.innerHTML = body;
+    this.inputs.innerHTML = '';
+    this.actions.innerHTML = '';
+    
+    let inputEl = null;
+    if (inputConfig) {
+      if(inputConfig.type === 'textarea') {
+        inputEl = document.createElement('textarea');
+        inputEl.className = 'modal-input';
+        inputEl.style.height = '150px';
+      } else {
+        inputEl = document.createElement('input');
+        inputEl.className = 'modal-input';
+        inputEl.type = inputConfig.type || 'text';
+      }
+      inputEl.placeholder = inputConfig.placeholder || '';
+      inputEl.value = inputConfig.value || '';
+      if(inputConfig.readonly) inputEl.setAttribute('readonly', 'readonly');
+      this.inputs.appendChild(inputEl);
+      
+      if (inputConfig.type !== 'textarea') {
+          inputEl.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  const primaryBtn = this.actions.querySelector('.primary');
+                  if (primaryBtn) primaryBtn.click();
+              }
+          });
+      }
+    }
+    
+    buttons.forEach(btn => {
+      const button = document.createElement('button');
+      button.className = `btn ${btn.class || ''}`;
+      button.textContent = btn.text;
+      button.onclick = () => {
+        const shouldKeepOpen = btn.onClick ? btn.onClick(inputEl ? inputEl.value : null) : false;
+        if (!shouldKeepOpen) this.hide();
+      };
+      this.actions.appendChild(button);
+    });
+    
+    this.overlay.classList.add('active');
+    if(inputEl && !inputConfig.readonly) setTimeout(() => inputEl.focus(), 100);
+  },
+  hide() { this.overlay.classList.remove('active'); }
+};
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+// -----------------------------------------------------
+// ★ 5. ドキュメント管理
+// -----------------------------------------------------
+function renderDocList() {
+  const list = document.getElementById('doc-list');
+  list.innerHTML = '';
+  docs.forEach(doc => {
+    const item = document.createElement('div');
+    item.className = `doc-item ${doc.id === currentDocId ? 'active' : ''}`;
+    
+    const title = document.createElement('div');
+    title.className = 'doc-item-title';
+    title.textContent = doc.title || '無題';
+    title.onclick = () => loadDoc(doc.id);
+    
+    const delBtn = document.createElement('div');
+    delBtn.className = 'doc-item-delete';
+    delBtn.innerHTML = '×';
+    delBtn.onclick = (e) => { e.stopPropagation(); deleteDoc(doc.id); };
+    
+    item.appendChild(title);
+    if(docs.length > 1) item.appendChild(delBtn);
+    list.appendChild(item);
+  });
+}
+
+function loadDoc(id) {
+  if (currentDocId && currentDocId !== id) {
+    const currentDoc = docs.find(d => d.id === currentDocId);
+    if (currentDoc) currentDoc.content = editor.innerHTML;
+  }
+  
+  currentDocId = id;
+  const doc = docs.find(d => d.id === id);
+  if (doc) {
+    document.getElementById('doc-title').value = doc.title;
+    editor.innerHTML = doc.content;
+    historyStack = [];
+    historyIndex = -1;
+    saveHistory(); 
+    updateNotesDisplay();
+    renderDocList();
+    saveData();
+  }
+}
+
+function createNewDoc() {
+  saveData(); 
+  
+  const newId = Date.now() + Math.floor(Math.random() * 1000);
+  const newDoc = { id: newId, title: '新規ドキュメント', content: '<p><br></p>' };
+  
+  docs.push(newDoc);
+  loadDoc(newId);
+}
+
+function deleteDoc(id) {
+  modal.show('削除確認', 'このドキュメントを削除しますか？', [
+    { text: 'キャンセル' },
+    { text: '削除', class: 'danger', onClick: () => {
+        docs = docs.filter(d => d.id !== id);
+        if (currentDocId === id) loadDoc(docs[0].id);
+        else renderDocList();
+        saveData();
+      }
+    }
+  ]);
+}
+
+function updateDocTitle(title) {
+  const doc = docs.find(d => d.id === currentDocId);
+  if (doc) {
+    doc.title = title || '無題';
+    renderDocList();
+    saveData();
+  }
+}
+
+function saveData() {
+  const currentDoc = docs.find(d => d.id === currentDocId);
+  if (currentDoc) currentDoc.content = editor.innerHTML;
+  
+  try {
+    localStorage.setItem('ese_docs_pro', JSON.stringify(docs));
+  } catch (e) {
+    console.error('保存エラー:', e);
+    showToast('エラー: 保存に失敗しました。容量上限などの問題があります。');
+  }
+}
+
+// -----------------------------------------------------
+// ★ 6. データの入出力 (エクスポート/インポート)
+// -----------------------------------------------------
+function exportDataAsText() {
+  saveData();
+  
+  const currentDoc = docs.find(d => d.id === currentDocId);
+  if (!currentDoc) {
+      showToast('エラー: 書き出すドキュメントが見つかりません');
+      return;
+  }
+  
+  const dataStr = JSON.stringify([currentDoc]);
+  
+  modal.show('データの書き出し（コピー）', 
+    '下の枠内にあるテキストをすべてコピーし、別の端末で「読み込む」から貼り付けてください。<br><b>※現在開いている文章（1件）のみが対象です。</b>', 
+    [
+      { text: '閉じる', class: 'btn' },
+      { text: 'テキストをコピー', class: 'primary', onClick: () => {
+          const ta = document.querySelector('.modal-input');
+          if(ta) {
+            ta.select();
+            document.execCommand('copy');
+            showToast('クリップボードにコピーしました！');
+          }
+          return true;
+        }
+      }
+    ], 
+    { type: 'textarea', value: dataStr, readonly: true }
+  );
+}
+
+function showImportModal() {
+  modal.show('データの読み込み（貼り付け）', 
+    '別の端末でコピーしたデータのテキストを、下の枠内に貼り付けてください。', 
+    [
+      { text: 'キャンセル', class: 'btn' },
+      { text: 'データを追加する', class: 'primary', onClick: (val) => { processImport(val); } }
+    ], 
+    { type: 'textarea', placeholder: '[{"id":...}] データをここに貼り付け' }
+  );
+}
+
+function processImport(jsonString) {
+  if(!jsonString || jsonString.trim() === '') {
+    showToast('テキストが入力されていません');
+    return;
+  }
+  try {
+    const importedDocs = JSON.parse(jsonString);
+    if (!Array.isArray(importedDocs) || importedDocs.length === 0 || !importedDocs[0].id || !importedDocs[0].content) {
+      throw new Error("正しいデータ形式ではありません");
+    }
+    
+    importedDocs.forEach(doc => {
+      doc.id = Date.now() + Math.floor(Math.random() * 1000);
+      docs.push(doc);
+    });
+    
+    saveData();
+    renderDocList();
+    showToast('データを追加しました');
+    
+  } catch (error) {
+    alert("データの読み込みに失敗しました。\n詳細: " + error.message);
+  }
+}
+
+// -----------------------------------------------------
+// ★ 7. エディタの編集・装飾機能
+// -----------------------------------------------------
+function saveHistory() {
+  const content = editor.innerHTML;
+  if (historyIndex >= 0 && historyStack[historyIndex] === content) return;
+  if (historyIndex < historyStack.length - 1) historyStack = historyStack.slice(0, historyIndex + 1);
+  historyStack.push(content);
+  if (historyStack.length > 50) historyStack.shift();
+  historyIndex = historyStack.length - 1;
+  saveData();
+}
+
+function execCmd(cmd) {
+  if (cmd === 'undo') {
+    if (historyIndex > 0) {
+      isRestoringHistory = true; historyIndex--;
+      editor.innerHTML = historyStack[historyIndex];
+      updateNotesDisplay(); saveData(); isRestoringHistory = false;
+    }
+  } else if (cmd === 'redo') {
+    if (historyIndex < historyStack.length - 1) {
+      isRestoringHistory = true; historyIndex++;
+      editor.innerHTML = historyStack[historyIndex];
+      updateNotesDisplay(); saveData(); isRestoringHistory = false;
+    }
+  } else {
+    document.execCommand(cmd, false, null);
+    saveHistory();
+  }
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === 'z') { e.preventDefault(); execCmd('undo'); }
+    if (e.key === 'y') { e.preventDefault(); execCmd('redo'); }
+  }
+});
+
+function showInputTextModal() {
+  modal.show('英文の流し込み', '英文を貼り付けてください。現在の内容は上書きされます。', [
+    { text: 'キャンセル' },
+    { text: '挿入する', class: 'primary', onClick: (val) => {
+        if(val) {
+          editor.innerHTML = val.replace(/&/g,"&").replace(/</g,"<").replace(/>/g,">").replace(/\n/g, "<br>");
+          saveHistory(); updateNotesDisplay();
+        }
+      }
+    }
+  ], { type: 'textarea', placeholder: 'ここに英文を貼り付け...' });
+}
+
+function insertPageBreak() {
+  editor.focus();
+  document.execCommand('insertHTML', false, '<hr class="page-break-mark"><p><br></p>');
+  saveHistory();
+}
+
+function showAddCommentModal() {
+  const bodyHtml = `
+    <div style="margin-bottom: 10px;">
+      <label style="margin-right: 15px; font-weight: bold;">色: 
+        <select id="fc-color" class="modal-input" style="width: auto; display: inline-block; margin-left: 5px;">
+          <option value="#111827">黒</option>
+          <option value="#ef4444">赤</option>
+          <option value="#3b82f6">青</option>
+        </select>
+      </label>
+      <label style="font-weight: bold;">太さ: 
+        <select id="fc-weight" class="modal-input" style="width: auto; display: inline-block; margin-left: 5px;">
+          <option value="normal">普通</option>
+          <option value="bold">太字</option>
+        </select>
+      </label>
+    </div>
+  `;
+  modal.show('自由に動かせるコメントを追加', bodyHtml, [
+    { text: 'キャンセル' },
+    { text: '追加', class: 'primary', onClick: (val) => {
+        if(val) {
+          const color = document.getElementById('fc-color').value;
+          const weight = document.getElementById('fc-weight').value;
+          addFreeComment(val, color, weight);
+        }
+      }
+    }
+  ], { type: 'textarea', placeholder: 'コメントを入力...' });
+}
+
+function addFreeComment(text, color, weight) {
+    const fc = document.createElement('div');
+    fc.className = 'free-comment';
+    fc.style.color = color;
+    fc.style.fontWeight = weight;
+    fc.style.fontSize = '14px'; 
+    
+    const editorRect = editor.getBoundingClientRect();
+    const wrapper = document.querySelector('.editor-wrapper');
+    const wrapperRect = wrapper.getBoundingClientRect();
+    
+    let startY = wrapper.scrollTop + 40; 
+    if (startY < 20) startY = 20; 
+    
+    const startX = 20; 
+    
+    fc.style.transform = `translate(${startX}px, ${startY}px)`;
+    fc.setAttribute('data-dx', startX);
+    fc.setAttribute('data-dy', startY);
+    
+    const textSpan = document.createElement('span');
+    textSpan.innerHTML = text.replace(/&/g,"&").replace(/</g,"<").replace(/>/g,">").replace(/\n/g, "<br>");
+    fc.appendChild(textSpan);
+    
+    const controls = document.createElement('div');
+    controls.className = 'fc-controls';
+    controls.contentEditable = "false";
+    controls.innerHTML = `
+        <div class="fc-btn fc-delete-new" title="削除">×</div>
+    `;
+    fc.appendChild(controls);
+    
+    const resizeHandle = document.createElement('div');
+    resizeHandle.className = 'fc-resize-handle';
+    resizeHandle.contentEditable = "false";
+    resizeHandle.title = "ドラッグしてサイズ変更";
+    fc.appendChild(resizeHandle);
+
+    editor.appendChild(fc);
+    saveHistory();
+}
+
+function getSelectionRange(allowWordFallback = false) {
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount > 0) {
+    const r = sel.getRangeAt(0);
+    if (editor.contains(r.commonAncestorContainer)) {
+      if (!sel.isCollapsed) {
+        const isWordChar = c => /[A-Za-z0-9'’-]/.test(c);
+        let startNode = r.startContainer;
+        let startOffset = r.startOffset;
+        let endNode = r.endContainer;
+        let endOffset = r.endOffset;
+        if (startNode.nodeType === Node.TEXT_NODE) {
+          const text = startNode.textContent;
+          while (startOffset > 0 && isWordChar(text[startOffset - 1])) startOffset--;
+        }
+        if (endNode.nodeType === Node.TEXT_NODE) {
+          const text = endNode.textContent;
+          while (endOffset < text.length && isWordChar(text[endOffset])) endOffset++;
+        }
+        try {
+          const expanded = document.createRange();
+          expanded.setStart(startNode, startOffset);
+          expanded.setEnd(endNode, endOffset);
+          return expanded;
+        } catch(e) { return r.cloneRange(); }
+      }
+      if (allowWordFallback && sel.isCollapsed) {
+        let node = sel.anchorNode;
+        let offset = sel.anchorOffset;
+        if (node && node.nodeType !== Node.TEXT_NODE) {
+          const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+          node = walker.nextNode();
+        }
+        if (node) {
+          const text = node.textContent;
+          let pos = Math.min(offset, text.length);
+          const isWordChar = c => /[A-Za-z0-9'’-]/.test(c);
+          if (pos === text.length) pos--;
+          if (pos >= 0 && !isWordChar(text[pos]) && pos > 0 && isWordChar(text[pos-1])) pos--;
+          if (pos >= 0 && isWordChar(text[pos])) {
+            let start = pos, end = pos + 1;
+            while (start > 0 && isWordChar(text[start-1])) start--;
+            while (end < text.length && isWordChar(text[end])) end++;
+            const wr = document.createRange();
+            wr.setStart(node,start); wr.setEnd(node,end);
+            return wr;
+          }
+        }
+      }
+    }
+  }
+
+  if (restoreSavedSelection()) {
+    const restored = window.getSelection().getRangeAt(0);
+    if (!restored.collapsed && editor.contains(restored.commonAncestorContainer)) {
+      const isWordChar = c => /[A-Za-z0-9'’-]/.test(c);
+      let startNode = restored.startContainer, startOffset = restored.startOffset;
+      let endNode = restored.endContainer, endOffset = restored.endOffset;
+      if (startNode.nodeType === Node.TEXT_NODE) {
+        const text=startNode.textContent;
+        while(startOffset>0 && isWordChar(text[startOffset-1])) startOffset--;
+      }
+      if (endNode.nodeType === Node.TEXT_NODE) {
+        const text=endNode.textContent;
+        while(endOffset<text.length && isWordChar(text[endOffset])) endOffset++;
+      }
+      try {
+        const expanded=document.createRange();
+        expanded.setStart(startNode,startOffset); expanded.setEnd(endNode,endOffset);
+        return expanded;
+      } catch(e) { return restored.cloneRange(); }
+    }
+  }
+  return null;
+}
+
+function clearSavedSelection() {
+  savedSelectionRange = null;
+  editorSelectionActive = false;
+}
+
+function applyRole(role) {
+  const r = getSelectionRange(true);
+  if (!r) return;
+  
+  const span = document.createElement("span");
+  const baseRole = role.replace(/['"₁₂₃₄₅₆₇₈₉₀"]/g, ""); 
+  
+  let levelClass = " role-level-1"; 
+  if (role.includes('"') || role.includes('"') || role.includes("'''") || role.includes("''''")) levelClass = " role-level-3"; 
+  else if (role.includes("'")) levelClass = " role-level-2"; 
+  
+  span.className = "token role-" + baseRole + levelClass;
+  const label = document.createElement("span");
+  label.className = "role-label";
+  label.innerHTML = role.replace(/"/g, '"');
+  
+  span.appendChild(label);
+  span.appendChild(r.extractContents());
+  r.insertNode(span);
+  window.getSelection().removeAllRanges();
+  clearSavedSelection();
+  saveHistory();
+  hideFloatingToolbar();
+}
+
+function wrapBracket(type) {
+  const r = getSelectionRange();
+  if (!r) return;
+  const span = document.createElement("span");
+  span.className = "bracket " + type;
+  
+  let leftChar = "[", rightChar = "]";
+  if (type === "round") { leftChar = "("; rightChar = ")"; }
+  else if (type === "angle") { leftChar = "〈"; rightChar = "〉"; }
+  else if (type === "curly") { leftChar = "{"; rightChar = "}"; }
+  
+  const leftHandle = document.createElement("span");
+  leftHandle.className = "b-handle left";
+  leftHandle.textContent = leftChar;
+  leftHandle.contentEditable = "false";
+  
+  const rightHandle = document.createElement("span");
+  rightHandle.className = "b-handle right";
+  rightHandle.textContent = rightChar;
+  rightHandle.contentEditable = "false";
+  
+  const content = document.createElement("span");
+  content.className = "b-content";
+  content.appendChild(r.extractContents());
+  
+  span.append(leftHandle, content, rightHandle);
+  r.insertNode(span);
+  window.getSelection().removeAllRanges();
+  clearSavedSelection();
+  saveHistory();
+  hideFloatingToolbar();
+}
+
+function promptAddNote() {
+  const r = getSelectionRange();
+  if (!r) return;
+  const word = r.toString().trim();
+  modal.show('語注の追加', `「<b>${word}</b>」の訳を入力（左側を熟語に書き換えも可）：`, [
+    { text: '巻末のみ', class: 'btn', onClick: (val) => { if(val) applyNote(r, val, false); } },
+    { text: '直下＋巻末', class: 'primary', onClick: (val) => { if(val) applyNote(r, val, true); } }
+  ], { type: 'text', value: `${word} : ` });
+  hideFloatingToolbar();
+}
+
+function applyNote(range, inputValue, isRuby) {
+  let parts = inputValue.split(':');
+  let dictWord = parts[0].trim();
+  let meaning = parts.slice(1).join(':').trim();
+  
+  if (!meaning) {
+    meaning = dictWord; 
+    dictWord = range.toString().trim();
+  }
+
+  const originalText = range.toString().trim();
+  const isEdited = (dictWord !== originalText);
+
+  let wrapper;
+  if (isRuby) {
+    wrapper = document.createElement("ruby");
+    wrapper.className = "has-note";
+    wrapper.setAttribute("data-meaning", `${dictWord} = ${meaning}`);
+    wrapper.appendChild(range.extractContents());
+    const rt = document.createElement("rt");
+    
+    if (isEdited) rt.textContent = `${dictWord} = ${meaning}`;
+    else rt.textContent = meaning;
+    
+    wrapper.appendChild(rt);
+  } else {
+    wrapper = document.createElement("span");
+    wrapper.className = "has-note";
+    wrapper.setAttribute("data-meaning", `${dictWord} = ${meaning}`);
+    wrapper.appendChild(range.extractContents());
+  }
+  
+  range.insertNode(wrapper);
+  window.getSelection().removeAllRanges();
+  clearSavedSelection();
+  updateNotesDisplay();
+  saveHistory();
+}
+
+function editNote(noteElement) {
+  const dataMeaning = noteElement.getAttribute('data-meaning') || "";
+  let parts = dataMeaning.split('=');
+  let dictWord = parts[0] ? parts[0].trim() : "";
+  let meaning = parts.slice(1).join('=').trim();
+  
+  let baseText = "";
+  noteElement.childNodes.forEach(child => {
+      if (child.nodeName.toLowerCase() !== 'rt') {
+          baseText += child.textContent;
+      }
+  });
+  baseText = baseText.trim();
+
+  let initialValue = `${dictWord} : ${meaning}`;
+  if (dictWord === baseText) {
+      initialValue = meaning; 
+  }
+
+  modal.show('語注の編集', `「<b>${baseText}</b>」の訳を編集：<br><span style="font-size:12px; color:#6b7280;">（空にして更新すると削除されます。左側を書き換えも可 例: 熟語 : 意味）</span>`, [
+    { text: '削除', class: 'danger', onClick: () => {
+        removeNoteOnly(noteElement);
+        return false;
+    }},
+    { text: 'キャンセル', class: 'btn' },
+    { text: '更新', class: 'primary', onClick: (val) => {
+        if(val) {
+          let updateParts = val.split(':');
+          let updateDictWord = updateParts[0].trim();
+          let updateMeaning = updateParts.slice(1).join(':').trim();
+          
+          if (!updateMeaning) {
+            updateMeaning = updateDictWord;
+            updateDictWord = baseText;
+          }
+          
+          noteElement.setAttribute("data-meaning", `${updateDictWord} = ${updateMeaning}`);
+          
+          if (noteElement.tagName.toLowerCase() === 'ruby') {
+            const rt = noteElement.querySelector('rt');
+            if (rt) {
+              if (updateDictWord !== baseText) {
+                rt.textContent = `${updateDictWord} = ${updateMeaning}`;
+              } else {
+                rt.textContent = updateMeaning;
+              }
+            }
+          }
+          updateNotesDisplay();
+          saveHistory();
+        } else {
+          removeNoteOnly(noteElement);
+        }
+    }}
+  ], { type: 'text', value: initialValue });
+}
+
+function removeNoteOnly(el) {
+  if (el.tagName.toLowerCase() === 'ruby') {
+    const rts = el.querySelectorAll('rt');
+    rts.forEach(rt => rt.remove());
+  }
+  const parent = el.parentNode;
+  if (parent) {
+    while (el.firstChild) {
+      parent.insertBefore(el.firstChild, el);
+    }
+    parent.removeChild(el);
+  }
+  updateNotesDisplay();
+  saveHistory();
+}
+
+function insertLabelBelow(labelTxt) {
+  const r = getSelectionRange();
+  if(!r) return;
+  
+  const wrapper = document.createElement("ruby");
+  wrapper.appendChild(r.extractContents());
+  const rt = document.createElement("rt");
+  rt.textContent = labelTxt;
+  rt.style.color = "#2563eb";
+  rt.style.fontWeight = "bold";
+  wrapper.appendChild(rt);
+  
+  r.insertNode(wrapper);
+  window.getSelection().removeAllRanges();
+  clearSavedSelection();
+  saveHistory();
+  hideFloatingToolbar();
+}
+
+function insertOmission(txt) {
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0) return;
+  const range = sel.getRangeAt(0);
+  if (!editor.contains(range.commonAncestorContainer)) return;
+  
+  const span = document.createElement("span");
+  span.className = "omission";
+  span.textContent = txt;
+  range.insertNode(span);
+  
+  range.setStartAfter(span);
+  range.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(range);
+  
+  saveHistory();
+  hideFloatingToolbar();
+}
+
+function updateNotesDisplay() {
+  const notesContainer = document.getElementById('notes-section');
+  const grid = document.getElementById('notes-grid');
+  const notes = editor.querySelectorAll('.has-note');
+  
+  if (notes.length === 0) { notesContainer.style.display = 'none'; return; }
+  notesContainer.style.display = 'block';
+  grid.innerHTML = '';
+  
+  notes.forEach((el, index) => {
+    const num = index + 1;
+    el.setAttribute('data-num', num);
+    const parts = (el.getAttribute('data-meaning') || "").split('=');
+    const word = parts[0] ? parts[0].trim() : "";
+    const meaning = parts[1] ? parts[1].trim() : "";
+    
+    const item = document.createElement('div');
+    item.className = 'note-item';
+    
+    item.style.cursor = 'pointer';
+    item.title = 'クリックして編集・削除';
+    item.addEventListener('click', () => {
+      editNote(el);
+    });
+
+    item.innerHTML = `<div class="note-num">${num}.</div><div class="note-word">${word}</div><div class="note-mean">${meaning}</div>`;
+    grid.appendChild(item);
+  });
+}
+
+function removeFormatting() {
+  const r = getSelectionRange();
+  if (!r) return;
+  const frag = r.extractContents();
+  const deletables = Array.from(frag.querySelectorAll('.omission, .b-handle, .role-label, rt'));
+  deletables.forEach(el => el.remove());
+  const wrappers = Array.from(frag.querySelectorAll('.token, .bracket, .has-note, ruby'));
+  wrappers.forEach(el => {
+    const parent = el.parentNode;
+    if (parent) {
+      while (el.firstChild) parent.insertBefore(el.firstChild, el);
+      parent.removeChild(el);
+    }
+  });
+  r.insertNode(frag);
+  window.getSelection().removeAllRanges();
+  clearSavedSelection();
+  updateNotesDisplay();
+  saveHistory();
+  hideFloatingToolbar();
+}
+
+let selectionTimeout;
+document.addEventListener("selectionchange", () => {
+  if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) return;
+  clearTimeout(selectionTimeout);
+  selectionTimeout = setTimeout(() => { showFloatingToolbar(); }, 250);
+});
+
+// -----------------------------------------------------
+// ★ 8. ラベル・語注のドラッグ＆ドロップ機能
+// -----------------------------------------------------
+let isDraggingLabel = false;
+let dragLabelTarget = null;
+let dragStartX = 0;
+let dragStartY = 0;
+let initialDx = 0;
+let initialDy = 0;
+let wasDragged = false; 
+
+let isResizingComment = false;
+let resizeCommentTarget = null;
+let initialFontSize = 14;
+
+editor.addEventListener('pointerdown', (e) => {
+  wasDragged = false; 
+
+  const target = e.target;
+  const freeComment = target.closest('.free-comment');
+  
+  if (target.classList.contains('fc-resize-handle')) {
+    e.preventDefault();
+    e.stopPropagation();
+    isResizingComment = true;
+    resizeCommentTarget = freeComment;
+    dragStartX = e.clientX;
+    initialFontSize = parseFloat(resizeCommentTarget.style.fontSize) || 14;
+    target.setPointerCapture(e.pointerId);
+    return;
+  }
+
+  if (target.classList.contains('fc-btn') || target.classList.contains('fc-delete') || target.classList.contains('fc-delete-new')) {
+      return;
+  }
+
+  if (target.classList.contains('role-label') || target.tagName.toLowerCase() === 'rt' || freeComment) {
+    e.preventDefault(); 
+    e.stopPropagation();
+    isDraggingLabel = true;
+    dragLabelTarget = freeComment || target;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    
+    initialDx = parseFloat(dragLabelTarget.getAttribute('data-dx')) || 0;
+    initialDy = parseFloat(dragLabelTarget.getAttribute('data-dy')) || 0;
+    
+    dragLabelTarget.setPointerCapture(e.pointerId);
+  }
+});
+
+editor.addEventListener('pointermove', (e) => {
+  if (isResizingComment && resizeCommentTarget) {
+    wasDragged = true; 
+    const dx = e.clientX - dragStartX;
+    let newSize = initialFontSize + (dx / 3);
+    if (newSize < 8) newSize = 8;
+    if (newSize > 100) newSize = 100;
+    resizeCommentTarget.style.fontSize = newSize + 'px';
+    return;
+  }
+
+  if (!isDraggingLabel || !dragLabelTarget) return;
+  
+  const dx = e.clientX - dragStartX;
+  const dy = e.clientY - dragStartY;
+  
+  if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+      wasDragged = true;
+  }
+  
+  const newDx = initialDx + dx;
+  const newDy = initialDy + dy;
+  
+  dragLabelTarget.setAttribute('data-dx', newDx);
+  dragLabelTarget.setAttribute('data-dy', newDy);
+  
+  if (dragLabelTarget.classList.contains('role-label') || dragLabelTarget.tagName.toLowerCase() === 'rt') {
+    dragLabelTarget.style.transform = `translate(calc(-50% + ${newDx}px), ${newDy}px)`;
+  } else {
+    dragLabelTarget.style.transform = `translate(${newDx}px, ${newDy}px)`;
+  }
+});
+
+editor.addEventListener('pointerup', (e) => {
+  if (isResizingComment && resizeCommentTarget) {
+    const handle = resizeCommentTarget.querySelector('.fc-resize-handle');
+    if (handle) handle.releasePointerCapture(e.pointerId);
+    isResizingComment = false;
+    resizeCommentTarget = null;
+    saveHistory();
+    return;
+  }
+
+  if (isDraggingLabel && dragLabelTarget) {
+    dragLabelTarget.releasePointerCapture(e.pointerId);
+    isDraggingLabel = false;
+    dragLabelTarget = null;
+    saveHistory(); 
+  }
+});
+
+editor.addEventListener("click", (e) => {
+  if (e.target.classList.contains('fc-delete') || e.target.classList.contains('fc-delete-new')) {
+    const fc = e.target.closest('.free-comment');
+    if (fc) { fc.remove(); saveHistory(); }
+    return;
+  }
+
+  if (wasDragged) {
+      wasDragged = false;
+      return;
+  }
+
+  const noteEl = e.target.closest('.has-note');
+  if (noteEl) {
+    const sel = window.getSelection();
+    if (sel && sel.isCollapsed) { 
+        e.preventDefault();
+        e.stopPropagation();
+        editNote(noteEl);
+        hideFloatingToolbar();
+        return;
+    }
+  }
+
+  if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) return;
+  const sel = window.getSelection();
+  if(sel && sel.isCollapsed) showFloatingToolbar(e);
+});
+
+window.addEventListener('scroll', hideFloatingToolbar, true);
+
+function showFloatingToolbar(e = null) {
+  const ft = document.getElementById('floating-toolbar');
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0 || !editor.contains(sel.anchorNode)) { ft.classList.remove('active'); return; }
+  
+  const range = sel.getRangeAt(0);
+  let rect = range.getBoundingClientRect();
+  
+  if (rect.width === 0 && rect.height === 0) {
+     if (e && e.clientX) rect = { left: e.clientX, right: e.clientX, top: e.clientY, bottom: e.clientY, width: 0, height: 0 };
+     else {
+         const rects = range.getClientRects();
+         if(rects.length > 0) rect = rects[0];
+         else { ft.classList.remove('active'); return; }
+     }
+  }
+
+  ft.style.display = 'flex';
+  const ftWidth = ft.offsetWidth;
+  const ftHeight = ft.offsetHeight;
+  let left = rect.left + (rect.width / 2) - (ftWidth / 2);
+  let top = rect.bottom + 12; 
+  if (top + ftHeight > window.innerHeight - 10) top = rect.top - ftHeight - 12;
+  left = Math.max(10, Math.min(left, window.innerWidth - ftWidth - 10));
+
+  ft.style.left = left + 'px';
+  ft.style.top = top + 'px';
+  ft.classList.add('active');
+}
+function hideFloatingToolbar() { document.getElementById('floating-toolbar').classList.remove('active'); }
+
+function printDocument(mode) {
+  document.body.classList.remove('print-student', 'print-no-bg');
+  
+  if(mode === 'student') {
+    document.body.classList.add('print-student');
+  } else if (mode === 'answer-no-bg') {
+    document.body.classList.add('print-no-bg');
+  }
+  
+  window.print();
+  
+  window.addEventListener('afterprint', function cleanup() {
+    document.body.classList.remove('print-student', 'print-no-bg');
+    window.removeEventListener('afterprint', cleanup);
+  });
+}
+</script>
+</body>
+</html>
