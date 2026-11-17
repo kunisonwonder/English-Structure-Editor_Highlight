@@ -65,24 +65,9 @@ body { margin: 0; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic Pr
 
 /* Editor Area */
 .editor-wrapper { flex: 1; overflow: auto; padding: 30px 10px; display: flex; flex-direction: column; gap: 20px; }
-
-/* ★ ズレ防止：画面上のエディタサイズを「A4用紙そのもの」にする */
-.editor-paper { 
-    background: white; 
-    border-radius: 8px; 
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.1); 
-    padding: 25mm 20mm; /* A4用紙の余白を再現 (上下25mm, 左右20mm) */
-    min-height: 297mm;  /* A4用紙の高さ */
-    display: flex; 
-    flex-direction: column; 
-    width: 210mm;       /* A4用紙の幅に固定 */
-    min-width: 210mm; 
-    max-width: 210mm; 
-    flex-shrink: 0; 
-    margin: 0 auto; 
-    box-sizing: border-box; 
-}
-.editor { outline: none; -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; touch-action: auto; cursor: text; font-size: 18px; line-height: 2.8; font-family: 'Times New Roman', Times, serif; color: #111; letter-spacing: 0.02em; flex: 1; position: relative; }
+/* ★ 元の750px（padding 40px = 内部幅670px）に完全復元（過去データのズレを防ぐ） */
+.editor-paper { background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.1); padding: 40px; min-height: calc(100vh - 150px); display: flex; flex-direction: column; width: 750px; min-width: 750px; max-width: 750px; flex-shrink: 0; margin: 0 auto; box-sizing: border-box; }
+.editor { outline: none; -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; touch-action: auto; cursor: text; font-size: 18px; line-height: 2.8; font-family: 'Times New Roman', Times, serif; color: #111; letter-spacing: 0.02em; flex: 1; position: relative; font-kerning: none; font-variant-ligatures: none; }
 .editor p { margin: 0 0 1.5em 0; }
 .mobile-selection-hint { display:none; }
 @media (pointer: coarse) { .mobile-selection-hint { display:block; margin-top:18px; font: 12px/1.5 -apple-system,BlinkMacSystemFont,sans-serif; color:#9ca3af; } }
@@ -167,6 +152,7 @@ body { margin: 0; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic Pr
     font-size: 11px; font-weight: bold; position: absolute; bottom: -1.3em; left: 50%; 
     transform: translateX(-50%); line-height: 1; font-family: Arial, sans-serif; 
     cursor: grab; user-select: none; z-index: 10; touch-action: none;
+    white-space: nowrap;
 }
 .role-label:active { cursor: grabbing; }
 
@@ -192,7 +178,7 @@ rt {
     font-family: 'Noto Sans JP', sans-serif; font-size: 10px; color: #e11d48; font-weight: normal; 
     line-height: 1; user-select: none;
     position: absolute; left: 50%; top: 1.4em; transform: translateX(-50%);
-    white-space: nowrap; /* テキストの折り返しを防ぐ */
+    white-space: nowrap;
     cursor: grab; z-index: 10; touch-action: none;
 }
 rt:active { cursor: grabbing; }
@@ -224,8 +210,8 @@ rt:active { cursor: grabbing; }
 /* 印刷時の設定 */
 @media print {
   @page {
-    size: A4;
-    margin: 0; /* ★ ブラウザ側の余白をなくし、editor-paperのpaddingを使用する */
+    size: A4 portrait;
+    margin: 15mm 0; /* 上下15mm余白、左右はeditor-paperのpaddingで制御 */
   }
   * {
     -webkit-print-color-adjust: exact !important;
@@ -233,46 +219,55 @@ rt:active { cursor: grabbing; }
     color-adjust: exact !important;
   }
   
-  .sidebar, .toolbar-container, .no-print, #floating-toolbar { display: none !important; }
-  body, .main-area, .editor-wrapper, .editor-paper { height: auto; overflow: visible !important; background: white; margin: 0; padding: 0; display: block; box-shadow: none; border: none; }
+  .sidebar, .toolbar-container, .no-print, #floating-toolbar, .mobile-selection-hint { display: none !important; }
+  body, .main-area, .editor-wrapper { height: auto !important; overflow: visible !important; background: white !important; margin: 0 !important; padding: 0 !important; display: block !important; box-shadow: none !important; border: none !important; }
   
-  .editor-wrapper { padding: 0 !important; }
-  
-  /* ★ 印刷時も画面と全く同じ寸法(210mm)を強制し、改行位置のズレを防ぐ */
+  /* ★ 画面と1pxの狂いもない幅(750px)とpadding(40px = 内部670px)を完全維持 */
   .editor-paper { 
-    padding: 25mm 20mm !important; 
+    padding: 10px 40px !important; 
     margin: 0 auto !important; 
-    width: 210mm !important; 
-    min-width: 210mm !important; 
-    max-width: 210mm !important; 
+    width: 750px !important; 
+    min-width: 750px !important; 
+    max-width: 750px !important; 
     box-sizing: border-box !important; 
-    border: none !important;
-    border-radius: 0 !important;
     box-shadow: none !important;
-    min-height: auto !important;
-  } 
+    border: none !important;
+    min-height: 0 !important;
+  }
+  
+  /* 印刷用ロック時に行が勝手に折り返さないようにする */
+  body.printing-locked .editor {
+    white-space: nowrap !important;
+  }
 
   .print-legend { display: block; font-size: 12px; margin-bottom: 15px; text-align: right; }
   
+  /* 語注セクションは直前で必ず改ページ */
   .notes-section { page-break-before: always; break-before: page; margin-top: 20px; border-top: 1px solid #000; padding-top: 10px; }
   
+  /* 見出しと中身が泣き別れにならないようにする */
   .notes-title { page-break-after: avoid; break-after: avoid; margin-bottom: 15px; }
   
+  /* 印刷時の単語リストレイアウトを安定させる */
   .notes-grid { display: flex !important; flex-wrap: wrap !important; gap: 0 !important; }
   .note-item { width: 50% !important; box-sizing: border-box; padding-right: 15px !important; page-break-inside: avoid; break-inside: avoid; border-bottom: none; padding-top: 4px !important; padding-bottom: 4px !important; }
 
+  /* 画面上の改ページを印刷時の強制改ページに変換 */
   .page-break-mark { page-break-before: always !important; break-before: page !important; border: none !important; margin: 0 !important; padding: 0 !important; height: 0 !important; background: transparent !important; }
   .page-break-mark::after { display: none !important; }
 
+  /* 印刷時はコメントの操作ボタンを隠す */
   .fc-controls, .fc-delete-new, .fc-delete, .fc-resize-handle { display: none !important; }
 
-  body.print-student .role-label { display: none !important; }
+  /* 生徒用PDF：色とラベルを消去 */
+  body.print-student .role-label, body.print-student .print-cloned-label { display: none !important; }
   body.print-student .token { background: transparent !important; border-bottom: none !important; }
   body.print-student .b-handle { display: inline-block !important; }
   body.print-student .note-mean { visibility: hidden; }
   body.print-student .omission { display: none !important; }
-  body.print-student rt { visibility: hidden; }
+  body.print-student rt, body.print-student .print-cloned-rt { visibility: hidden !important; }
   
+  /* 蛍光ペンなし解答用PDF：背景色のみを透明にする */
   body.print-no-bg .token { background: transparent !important; }
 }
 
@@ -695,6 +690,7 @@ function updateDocTitle(title) {
 }
 
 function saveData() {
+  if (isPrintLocked) return; // 印刷用の一時ロック中は保存しない
   const currentDoc = docs.find(d => d.id === currentDocId);
   if (currentDoc) currentDoc.content = editor.innerHTML;
   
@@ -779,6 +775,7 @@ function processImport(jsonString) {
 // ★ 7. エディタの編集・装飾機能
 // -----------------------------------------------------
 function saveHistory() {
+  if (isPrintLocked) return;
   const content = editor.innerHTML;
   if (historyIndex >= 0 && historyStack[historyIndex] === content) return;
   if (historyIndex < historyStack.length - 1) historyStack = historyStack.slice(0, historyIndex + 1);
@@ -871,10 +868,7 @@ function addFreeComment(text, color, weight) {
     fc.style.fontWeight = weight;
     fc.style.fontSize = '14px'; 
     
-    const editorRect = editor.getBoundingClientRect();
     const wrapper = document.querySelector('.editor-wrapper');
-    const wrapperRect = wrapper.getBoundingClientRect();
-    
     let startY = wrapper.scrollTop + 40; 
     if (startY < 20) startY = 20; 
     
@@ -1430,6 +1424,148 @@ function showFloatingToolbar(e = null) {
 }
 function hideFloatingToolbar() { document.getElementById('floating-toolbar').classList.remove('active'); }
 
+// -----------------------------------------------------
+// ★ 9. 印刷時の完全座標＆改行ロック処理（ズレを100%防ぐ）
+// -----------------------------------------------------
+let isPrintLocked = false;
+let savedHTMLBeforePrint = null;
+
+function lockLayoutForPrint() {
+  if (isPrintLocked) return;
+  isPrintLocked = true;
+  savedHTMLBeforePrint = editor.innerHTML;
+
+  const editorRect = editor.getBoundingClientRect();
+
+  // 1. 画面上で見えているSVOCラベル(.role-label)と語注ルビ(rt)の絶対座標を取得し、
+  //    複数行折り返しやフォント差の影響を受けないエディタ直下の絶対座標クローンとして固定する
+  const labels = editor.querySelectorAll('.role-label, rt');
+  const clones = [];
+
+  labels.forEach(el => {
+    const rect = el.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return;
+    const cs = window.getComputedStyle(el);
+
+    const clone = document.createElement('div');
+    const isRt = el.tagName.toLowerCase() === 'rt';
+    clone.className = isRt ? 'print-cloned-rt' : 'print-cloned-label';
+    clone.innerHTML = el.innerHTML;
+
+    clone.style.position = 'absolute';
+    clone.style.left = (rect.left - editorRect.left) + 'px';
+    clone.style.top = (rect.top - editorRect.top) + 'px';
+    clone.style.width = rect.width + 'px';
+    clone.style.height = rect.height + 'px';
+    clone.style.color = cs.color;
+    clone.style.fontSize = cs.fontSize;
+    clone.style.fontWeight = cs.fontWeight;
+    clone.style.fontFamily = cs.fontFamily;
+    clone.style.lineHeight = cs.lineHeight;
+    clone.style.whiteSpace = 'nowrap';
+    clone.style.zIndex = cs.zIndex;
+    clone.style.pointerEvents = 'none';
+    clone.style.userSelect = 'none';
+
+    clones.push({ original: el, clone: clone });
+  });
+
+  // 2. 画面上で自動折り返し（ソフトラップ）している正確な位置を検出し、
+  //    印刷エンジンが勝手に改行位置を変えないよう明示的な <br> を挿入して行をロックする
+  const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, {
+    acceptNode: function(node) {
+      if (node.parentElement.closest('.role-label, rt, .free-comment, .fc-controls')) {
+        return NodeFilter.FILTER_REJECT;
+      }
+      if (!node.textContent) return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  });
+
+  const textNodes = [];
+  let n;
+  while (n = walker.nextNode()) textNodes.push(n);
+
+  const range = document.createRange();
+  const wrapPoints = [];
+  let lastTop = null;
+  let lastBlock = null;
+
+  for (let tIdx = 0; tIdx < textNodes.length; tIdx++) {
+    const node = textNodes[tIdx];
+    const text = node.textContent;
+    const block = node.parentElement.closest('p, div') || editor;
+
+    if (block !== lastBlock) {
+      lastTop = null;
+      lastBlock = block;
+    }
+
+    // 前のノードから改行やブロック要素を挟んだ場合はlastTopをリセット
+    if (tIdx > 0) {
+      range.setStartAfter(textNodes[tIdx - 1]);
+      range.setEndBefore(node);
+      const betweenFrag = range.cloneContents();
+      if (betweenFrag.querySelector('br, p, div, hr')) {
+        lastTop = null;
+      }
+    }
+
+    for (let i = 0; i < text.length; i++) {
+      // 改行文字や空白のみの箇所はスキップ
+      if (text[i] === '\n' || text[i] === '\r') continue;
+
+      range.setStart(node, i);
+      range.setEnd(node, i + 1);
+      const rects = range.getClientRects();
+      if (rects.length === 0) continue;
+      const r = rects[rects.length - 1];
+      if (r.width === 0 && r.height === 0) continue;
+
+      // 対象文字の親トークン等のpaddingやvertical-alignの差を考慮し、14px以上のY座標変化で「次の行に折り返した」と判定
+      if (lastTop !== null && (r.top - lastTop) > 14) {
+        wrapPoints.push({ node: node, index: i });
+      }
+      lastTop = r.top;
+    }
+  }
+
+  // 後ろから順に <br> を挿入してテキストノードのインデックスずれを防ぐ
+  for (let i = wrapPoints.length - 1; i >= 0; i--) {
+    const wp = wrapPoints[i];
+    const targetNode = wp.node;
+    let splitIndex = wp.index;
+
+    // 折り返し直前の半角スペースが次の行頭に来ないよう調整
+    const afterText = targetNode.splitText(splitIndex);
+    const br = document.createElement('br');
+    br.className = 'print-forced-br';
+    targetNode.parentNode.insertBefore(br, afterText);
+  }
+
+  // 3. 元のSVOCラベル・rtを非表示にし、座標固定済みクローンをエディタに配置
+  clones.forEach(item => {
+    item.original.style.visibility = 'hidden';
+    editor.appendChild(item.clone);
+  });
+
+  document.body.classList.add('printing-locked');
+}
+
+function unlockLayoutAfterPrint() {
+  if (!isPrintLocked) return;
+  document.body.classList.remove('printing-locked', 'print-student', 'print-no-bg');
+  if (savedHTMLBeforePrint !== null) {
+    editor.innerHTML = savedHTMLBeforePrint;
+    savedHTMLBeforePrint = null;
+  }
+  isPrintLocked = false;
+  updateNotesDisplay();
+}
+
+window.addEventListener('beforeprint', lockLayoutForPrint);
+window.addEventListener('afterprint', unlockLayoutAfterPrint);
+
 function printDocument(mode) {
   document.body.classList.remove('print-student', 'print-no-bg');
   
@@ -1439,12 +1575,12 @@ function printDocument(mode) {
     document.body.classList.add('print-no-bg');
   }
   
-  window.print();
+  // 印刷ダイアログを開く前にレイアウトと全座標を完全ロックする
+  lockLayoutForPrint();
   
-  window.addEventListener('afterprint', function cleanup() {
-    document.body.classList.remove('print-student', 'print-no-bg');
-    window.removeEventListener('afterprint', cleanup);
-  });
+  setTimeout(() => {
+    window.print();
+  }, 50);
 }
 </script>
 </body>
